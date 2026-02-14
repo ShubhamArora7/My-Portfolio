@@ -125,20 +125,29 @@ const GalleryRoom = ({ showRoom, onReady }) => {
     useEffect(() => {
         const handleWheel = (e) => {
             if (!showRoom) return;
+            // BLOCK SCROLL IF CARD IS SELECTED
+            if (selectedCard !== null) return;
+
             e.preventDefault();
             targetScroll.current += e.deltaY * 0.005;
         };
         window.addEventListener('wheel', handleWheel, { passive: false });
         return () => window.removeEventListener('wheel', handleWheel);
-    }, [showRoom]);
+    }, [showRoom, selectedCard]);
 
     const lastTouchX = useRef(0);
     useEffect(() => {
         if (!showRoom) return;
+
         const handleTouchStart = (e) => {
+            // BLOCK TOUCH IF CARD IS SELECTED
+            if (selectedCard !== null) return;
             if (e.touches.length === 1) lastTouchX.current = e.touches[0].clientX;
         };
         const handleTouchMove = (e) => {
+            // BLOCK TOUCH MOVE IF CARD IS SELECTED
+            if (selectedCard !== null) return;
+
             if (e.touches.length === 1) {
                 const deltaX = lastTouchX.current - e.touches[0].clientX;
                 lastTouchX.current = e.touches[0].clientX;
@@ -151,7 +160,7 @@ const GalleryRoom = ({ showRoom, onReady }) => {
             window.removeEventListener('touchstart', handleTouchStart);
             window.removeEventListener('touchmove', handleTouchMove);
         };
-    }, [showRoom]);
+    }, [showRoom, selectedCard]);
 
     useFrame((state, delta) => {
         currentScroll.current = THREE.MathUtils.lerp(currentScroll.current, targetScroll.current, delta * 5);
@@ -411,8 +420,10 @@ const ProjectCard = ({ index, project, overlayTexture, clothespinTexture, curren
 
         // Target World Position (approximate, based on previous logic)
         const isMobile = window.innerWidth < 768;
+        // USTAWIENIA DOCELOWEJ POZYCJI KARTKI (GDZIE MA WYLADOWAC)
         const targetX_World = 0;
-        const targetY_World = isMobile ? -0.4 : -0.2; // Raised significantly (was -0.8/-1.0)
+        // TUTAJ ZMIEN WYSOKOSC (Im wyzsza liczba tym wyzej karta wyladuje. Np. 0.1 to wyzej niz -0.2)
+        const targetY_World = isMobile ? -0.2 : 0.1;
         const targetZ_World = isMobile ? 0.5 : 1.5;
 
         // Current Pin Position (Parent)
@@ -471,7 +482,9 @@ const ProjectCard = ({ index, project, overlayTexture, clothespinTexture, curren
         // ===== PHASE 2: Flip Up + Release Bend =====
         // Flying up and over
         timeline.to(paperRef.current.position, {
-            y: localBaseY + 0.6, // Arc up
+            // TUTAJ ZMIEN WYSOKOSC "SKOKU" (LUKU)
+            // Zwieksz liczbe (np. + 1.5), zeby kartka leciala wyzszym lukiem NAD barierka
+            y: localBaseY + 1.5, // Bylo + 0.6, teraz wyzej zeby ominac barierke
             x: targetX * 0.2, // Start moving towards target X
             z: targetZ * 0.2, // Start moving towards target Z
             duration: 0.4,

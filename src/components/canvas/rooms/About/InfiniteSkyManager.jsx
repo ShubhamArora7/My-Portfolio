@@ -2,7 +2,7 @@ import { useState, useRef, useMemo } from 'react';
 import { useFrame, useLoader, useThree } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
-import SkyChunk, { CHUNK_LENGTH } from './SkyChunk';
+import SkyChunk, { CHUNK_LENGTH, ROOM_Z } from './SkyChunk';
 
 /**
  * InfiniteSkyManager Component
@@ -16,9 +16,10 @@ import SkyChunk, { CHUNK_LENGTH } from './SkyChunk';
 // Each milestone appears once per "story cycle" (4 chunks = 160 units)
 const STORY_CYCLE_LENGTH = 160;
 
-// === EDYTUJ TUTAJ: GRANICA KORYTARZA DLA MILESTONES ===
-// Wartość bazowa - milestones przed tym progiem są ukryte
-const MILESTONE_CORRIDOR_CLIP_Z = -1;
+// === TWARDA LINIA ZANIKANIA DLA MILESTONES (WORLD SPACE) ===
+// Pokój About jest na Z = -25, więc -25 to drzwi pokoju
+// -27 = 2 metry za drzwiami (w głąb pokoju) - musi matchować CORRIDOR_CLIP_Z w SkyChunk
+const MILESTONE_CORRIDOR_CLIP_Z = -8.0;
 
 const InfiniteSkyManager = ({ scrollProgress = 0 }) => {
     const [activeChunks, setActiveChunks] = useState([0, 1, 2, 3]);
@@ -82,6 +83,7 @@ const InfiniteSkyManager = ({ scrollProgress = 0 }) => {
                     key={`sky-chunk-${chunkIndex}`}
                     chunkIndex={chunkIndex}
                     seed={42}
+                    scrollProgress={scrollProgress}
                 />
             ))}
 
@@ -149,15 +151,10 @@ const IntroMilestone = ({ z, scrollProgress }) => {
 
         const time = state.clock.elapsedTime;
 
-        // === CORRIDOR CLIPPING (FIXED ENTRANCE) ===
-        // Używamy pozycji PARENTA (worldRef) jako stałego punktu wejścia
-        // Ta pozycja nie zmienia się z kamerą - jest stała dla pokoju
-        const parentZ = groupRef.current.parent?.getWorldPosition(new THREE.Vector3()).z ?? 0;
-        const entranceZ = parentZ + MILESTONE_CORRIDOR_CLIP_Z; // Próg wejścia
-        const objectZ = groupRef.current.getWorldPosition(new THREE.Vector3()).z;
-
-        // Ukryj jeśli obiekt jest "przed" progiem wejścia (w stronę korytarza)
-        groupRef.current.visible = objectZ < entranceZ;
+        // === TWARDA LINIA CLIP (RĘCZNE OBLICZENIE WORLD Z) ===
+        // worldZ = pokój(-25) + scrollProgress + lokalna pozycja milestone
+        const worldZ = ROOM_Z + scrollProgress + z;
+        groupRef.current.visible = worldZ < MILESTONE_CORRIDOR_CLIP_Z;
 
         // Skip rest if not visible
         if (!groupRef.current.visible) return;
@@ -313,12 +310,9 @@ const AwardsMilestone = ({ z, scrollProgress }) => {
     useFrame((state) => {
         if (!groupRef.current) return;
 
-        // === CORRIDOR CLIPPING (FIXED ENTRANCE) ===
-        const parentZ = groupRef.current.parent?.getWorldPosition(new THREE.Vector3()).z ?? 0;
-        const entranceZ = parentZ + MILESTONE_CORRIDOR_CLIP_Z;
-        const objectZ = groupRef.current.getWorldPosition(new THREE.Vector3()).z;
-
-        groupRef.current.visible = objectZ < entranceZ;
+        // === TWARDA LINIA CLIP (RĘCZNE OBLICZENIE WORLD Z) ===
+        const worldZ = ROOM_Z + scrollProgress + z;
+        groupRef.current.visible = worldZ < MILESTONE_CORRIDOR_CLIP_Z;
         if (!groupRef.current.visible) return;
 
         // FIX: Use consistent distance based on scrollProgress + offset
@@ -466,14 +460,9 @@ const JourneyMilestone = ({ z, scrollProgress }) => {
     useFrame((state) => {
         if (!groupRef.current) return;
 
-        // === CORRIDOR CLIPPING (ANGLE-AWARE) ===
-        const worldZ = groupRef.current.getWorldPosition(new THREE.Vector3()).z;
-        const cameraX = Math.abs(camera.position.x);
-        const angleBonus = Math.max(0, (1.5 - cameraX) * 3);
-        const dynamicClipZ = MILESTONE_CORRIDOR_CLIP_Z - angleBonus;
-        const clipThreshold = camera.position.z + dynamicClipZ;
-
-        groupRef.current.visible = worldZ <= clipThreshold;
+        // === TWARDA LINIA CLIP (RĘCZNE OBLICZENIE WORLD Z) ===
+        const worldZ = ROOM_Z + scrollProgress + z;
+        groupRef.current.visible = worldZ < MILESTONE_CORRIDOR_CLIP_Z;
         if (!groupRef.current.visible) return;
 
         const time = state.clock.elapsedTime;
@@ -706,14 +695,9 @@ const SkillsMilestone = ({ z, scrollProgress }) => {
     useFrame((state) => {
         if (!groupRef.current) return;
 
-        // === CORRIDOR CLIPPING (ANGLE-AWARE) ===
-        const worldZ = groupRef.current.getWorldPosition(new THREE.Vector3()).z;
-        const cameraX = Math.abs(camera.position.x);
-        const angleBonus = Math.max(0, (1.5 - cameraX) * 3);
-        const dynamicClipZ = MILESTONE_CORRIDOR_CLIP_Z - angleBonus;
-        const clipThreshold = camera.position.z + dynamicClipZ;
-
-        groupRef.current.visible = worldZ <= clipThreshold;
+        // === TWARDA LINIA CLIP (RĘCZNE OBLICZENIE WORLD Z) ===
+        const worldZ = ROOM_Z + scrollProgress + z;
+        groupRef.current.visible = worldZ < MILESTONE_CORRIDOR_CLIP_Z;
         if (!groupRef.current.visible) return;
 
         setTime(state.clock.elapsedTime);

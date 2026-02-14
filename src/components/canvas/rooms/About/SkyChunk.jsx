@@ -6,24 +6,19 @@ import * as THREE from 'three';
  * SkyChunk Component
  * 
  * A single repeatable segment of sky with clouds.
- * Clouds fade out smoothly when too close to camera.
+ * Hard world-space clipping - no camera-relative fade.
  */
 const CHUNK_LENGTH = 40;
 const CHUNK_WIDTH = 20;
 const CHUNK_HEIGHT = 12;
 
-// === EDYTUJ TUTAJ: PARAMETRY ZNIKANIA CHMUR ===
-// FADE_START_Z: Chmura zaczyna blednąć gdy jest bliżej niż ta odległość od kamery
-// FADE_END_Z: Chmura jest całkowicie niewidoczna gdy jest bliżej niż ta odległość
-const FADE_START_Z = -10;  // Zmniejsz (np. -15) żeby blednięcie zaczynało się wcześniej
-const FADE_END_Z = -4;     // Zmniejsz (np. -6) żeby chmury znikały wcześniej
+// === TWARDA LINIA ZANIKANIA (WORLD SPACE) ===
+// Pokój About jest na Z = -25 (group position w AboutRoom.jsx)
+// Wszystko z world Z > CORRIDOR_CLIP_Z jest NATYCHMIAST niewidoczne
+const CORRIDOR_CLIP_Z = -8.0;
 
-// === EDYTUJ TUTAJ: GRANICA KORYTARZA ===
-// Chmury przed tą pozycją Z (w przestrzeni świata pokoju) są całkowicie ukryte
-// Zapobiega "wyciekaniu" chmur na korytarz podczas wchodzenia/wychodzenia
-// Większa wartość (np. -3) = chmury znikają wcześniej (bezpieczniej)
-// Mniejsza wartość (np. -8) = chmury widoczne bliżej wejścia
-const CORRIDOR_CLIP_Z = -8;
+// Pozycja pokoju w world space (hardcoded, bo AboutRoom ma position=[0,0,-25])
+const ROOM_Z = -25;
 
 // Available cloud textures
 const CLOUD_TEXTURES = [
@@ -37,7 +32,7 @@ const CLOUD_TEXTURES = [
     '/textures/clouds/f6e358bc-d27c-41dd-95f4-6787a835c41e.webp',
 ];
 
-const SkyChunk = ({ chunkIndex = 0, seed = 0 }) => {
+const SkyChunk = ({ chunkIndex = 0, seed = 0, scrollProgress = 0 }) => {
     const zOffset = -(chunkIndex * CHUNK_LENGTH) - 15;
 
     const clouds = useMemo(() => {
@@ -80,13 +75,14 @@ const SkyChunk = ({ chunkIndex = 0, seed = 0 }) => {
                     driftAmount={cloud.driftAmount}
                     bobAmount={cloud.bobAmount}
                     timeOffset={cloud.timeOffset}
+                    scrollProgress={scrollProgress}
                 />
             ))}
         </group>
     );
 };
 
-// Cloud with SMOOTH dynamic fade and drift animation
+// Cloud with hard world-space clipping + drift animation
 const Cloud = ({
     position,
     scale,
@@ -95,7 +91,8 @@ const Cloud = ({
     driftSpeed = 0.5,
     driftAmount = 0.8,
     bobAmount = 0.15,
-    timeOffset = 0
+    timeOffset = 0,
+    scrollProgress = 0
 }) => {
     const meshRef = useRef();
     const materialRef = useRef();
@@ -112,19 +109,13 @@ const Cloud = ({
     const width = 3 * scale;
     const height = width / aspectRatio;
 
-    // Cached values for smooth fade
-    const worldPos = useRef(new THREE.Vector3());
-    const currentOpacity = useRef(baseOpacity);
-
-    useFrame((state, delta) => {
+    useFrame((state) => {
         if (!meshRef.current) return;
 
         const time = state.clock.elapsedTime;
 
         // === DRIFT ANIMATION ===
-        // Horizontal sway (left-right)
         const driftX = Math.sin(time * driftSpeed + timeOffset) * driftAmount;
-        // Vertical bob (gentle up-down)
         const driftY = Math.sin(time * driftSpeed * 0.7 + timeOffset + 1.5) * bobAmount;
 
         // Apply drift to position
@@ -132,46 +123,15 @@ const Cloud = ({
         meshRef.current.position.y = basePosition.current[1] + driftY;
         meshRef.current.position.z = basePosition.current[2];
 
-        // Update world position (reuse object to avoid GC)
-        meshRef.current.getWorldPosition(worldPos.current);
+        // === TWARDA LINIA CLIP (RĘCZNE OBLICZENIE WORLD Z) ===
+        // worldZ = pokój(-25) + scrollProgress + lokalna pozycja chmury
+        // NIE używamy getWorldPosition() bo useFrame dzieci odpala się PRZED rodzicem!
+        const cloudLocalZ = basePosition.current[2];
+        const worldZ = ROOM_Z + scrollProgress + cloudLocalZ;
 
-        // Calculate relative Z (distance from camera)
-        const relativeZ = worldPos.current.z - camera.position.z;
-
-        // === CORRIDOR CLIPPING (FIXED ENTRANCE) ===
-        // Używamy pozycji grandparenta (worldRef) jako stałego punktu wejścia
-        // Struktura: worldRef -> SkyChunk group -> Cloud mesh
-        // Potrzebujemy wejść 2 poziomy w górę żeby dostać się do worldRef
-        const grandparentZ = meshRef.current.parent?.parent?.getWorldPosition(new THREE.Vector3()).z ?? 0;
-        const entranceZ = grandparentZ + CORRIDOR_CLIP_Z;
-        const cloudZ = worldPos.current.z;
-
-        // Ukryj jeśli chmura jest "przed" progiem wejścia (w stronę korytarza)
-        const isInCorridor = cloudZ > entranceZ;
-
-        // Target opacity based on distance AND corridor clipping
-        let targetOpacity = baseOpacity;
-
-        if (isInCorridor) {
-            // Chmura jest w strefie korytarza - całkowicie ukryta
-            targetOpacity = 0;
-        } else if (relativeZ > FADE_END_Z) {
-            targetOpacity = 0;
-        } else if (relativeZ > FADE_START_Z) {
-            const t = (FADE_START_Z - relativeZ) / (FADE_START_Z - FADE_END_Z);
-            targetOpacity = baseOpacity * t;
-        }
-
-        // SMOOTH lerp to target opacity
-        currentOpacity.current = THREE.MathUtils.lerp(
-            currentOpacity.current,
-            targetOpacity,
-            1 - Math.pow(0.01, delta)
-        );
-
-        // Apply to material
+        // Jeśli chmura jest za linią clipu → natychmiast niewidoczna
         if (materialRef.current) {
-            materialRef.current.opacity = currentOpacity.current;
+            materialRef.current.opacity = worldZ > CORRIDOR_CLIP_Z ? 0 : baseOpacity;
         }
 
         // Billboard effect - always face camera, turned 90° left
@@ -203,5 +163,5 @@ function seededRandom(seed) {
     };
 }
 
-export { CHUNK_LENGTH };
+export { CHUNK_LENGTH, CORRIDOR_CLIP_Z, ROOM_Z };
 export default SkyChunk;

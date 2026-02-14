@@ -71,7 +71,8 @@ const CorridorSegment = ({
                 side: 'left',
                 label: 'THE ABOUT',
                 icon: '★',
-                color: '#efe6f5'
+                color: '#efe6f5',
+                enterDistance: 25 // Enter deep into the room (clouds are far back)
             },
             {
                 id: `connect-${segmentIndex}`,
@@ -163,6 +164,7 @@ const CorridorSegment = ({
                     roomId={door.roomId}
                     icon={door.icon}
                     color={door.color}
+                    enterDistance={door.enterDistance}
                     onEnter={() => onDoorEnter?.(door.roomId)}
                     setCameraOverride={setCameraOverride}
                 />

@@ -35,7 +35,7 @@ const StudioRoom = ({ showRoom, onReady }) => {
 
         return {
             zoomDistance: isMobile ? 2 : isTablet ? 3 : CAMERA_ZOOM_DISTANCE,
-            panRight: isMobile ? 0 : isTablet ? 0.5 : CAMERA_PAN_RIGHT,
+            panRight: isMobile ? 0 : isTablet ? 0.5 : Math.max(0.3, (size.width / 1920) * CAMERA_PAN_RIGHT),
             panDown: isMobile ? 9.7 : 0, // Positive = camera DOWN = monitor at TOP
             yOffset: isMobile ? 2.5 : isTablet ? -3 : CAMERA_Y_OFFSET,
             isMobile, // Pass through boolean

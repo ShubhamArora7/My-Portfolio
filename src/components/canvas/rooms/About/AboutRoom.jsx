@@ -160,10 +160,10 @@ const AboutRoom = ({ showRoom, onReady, isExiting }) => {
     const airplaneBank = -currentBank.current * 2;
 
     return (
-        <group position={[0, 0, -5]}>
+        <group position={[0, 0, -25]}>
             {/* === PAPER AIRPLANE (follows camera maneuvers) === */}
             <PaperAirplane
-                position={[0, -0.3, -2]}
+                position={[0, -0.3, -1]}
                 rotation={[airplanePitch, 0, airplaneBank]}
                 scale={0.8}
                 color="#faf8f5"

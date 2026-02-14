@@ -51,6 +51,7 @@ const DoorSection = ({
     icon,
     onEnter,
     autoCloseDelay = 3000,
+    enterDistance = 8, // Default fly-through distance
     setCameraOverride // Function to take control of camera from hook
 }) => {
     const groupRef = useRef(); // Main group that tilts
@@ -475,7 +476,7 @@ const DoorSection = ({
                 const direction = new THREE.Vector3();
                 camera.getWorldDirection(direction);
 
-                const flyDistance = 8; // Fly through short vestibule (3) + into room
+                const flyDistance = enterDistance; // Fly through short vestibule (3) + into room
 
                 // Calculate TARGET position BEFORE animating (so flight path is straight)
                 const targetX = camera.position.x + direction.x * flyDistance;

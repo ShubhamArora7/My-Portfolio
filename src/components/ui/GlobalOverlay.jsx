@@ -84,9 +84,8 @@ const ContentCard = ({ content, isOpen, onClose, isMobile }) => {
         boxShadow: isOpen ? '8px 8px 0px rgba(0,0,0,0.1)' : '0px 0px 0px rgba(0,0,0,0)',
     } : {
         // DESKTOP: Karta po prawej
-        width: '35vw', // <--- FLUID
-        maxWidth: '450px',
-        right: '20rem', // <--- FLUID: WPROWADZONE PRZEZ UZYTKOWNIKA
+        width: 'clamp(280px, 30vw, 450px)', // <--- FLUID
+        right: 'clamp(2rem, 12vw, 20rem)', // <--- FLUID: scales with viewport
         top: '50%',
         transform: isOpen ? 'translateY(-50%) rotate(1deg)' : 'translate(150%, -50%) rotate(15deg)',
         opacity: isOpen ? 1 : 0,
