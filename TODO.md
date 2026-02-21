@@ -49,6 +49,13 @@
 - [X] Dodać subtelne animacje (floating, pulsing)
 - **Pliki:** [Corridor.jsx](file:///c:/Users/tomsz/Desktop/portfolio/portfolio-itom/src/components/canvas/corridor/Corridor.jsx), [Doodles.jsx](file:///c:/Users/tomsz/Desktop/portfolio/portfolio-itom/src/components/canvas/corridor/Doodles.jsx), [CorridorWalls.jsx](file:///c:/Users/tomsz/Desktop/portfolio/portfolio-itom/src/components/canvas/corridor/CorridorWalls.jsx)
 
+### 4.5. Rozbudowa detali i ożywienie pokojów (Wytyczne z audio)
+- [ ] **The Gallery:** Dodać animowane mini-detale w tle, żeby ożywić scenę (np. dym z kominów, poruszające się dźwigi, lecące ptaki).
+- [ ] **Corridor:** Uzupełnić puste obrazy/ramki na ścianach odpowiednimi grafikami.
+- [X] **The Studio:** Zaktualizować UI (HTML), które wyskakuje po prawej po kliknięciu w monitor. Dodać do monitorów miniaturki oraz wstawić prawdziwe filmy.
+- [ ] **About:** Popracować nad chmurami (mają wyglądać lepiej) i usunąć gwiazdki. Dodać interakcję dla balona: po kliknięciu balon pęka, odsłaniając pełną nazwę technologii w sekcji "Skills".
+- [ ] **Contact:** Wzbogacić puste środowisko (gdzie jest tylko morze i beczki): dodać w tle minimalistyczne fale, wyspę na horyzoncie i chmury na niebie.
+
 ### 5. Poprawić grafiki — czytelność vs detale w tle
 - [ ] About Room: Sprawdzić kontrast tekstów na tle chmur (milestones)
 - [X] Gallery Room: Upewnić się, że karty projektów są czytelne na tle domków i liny

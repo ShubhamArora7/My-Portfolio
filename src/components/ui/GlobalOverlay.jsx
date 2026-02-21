@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useScene } from '../../context/SceneContext';
-// import './GlobalOverlay.scss'; // Using inline styles
+import '../../styles/GlobalOverlay.scss';
 
 const GlobalOverlay = () => {
     const { overlayContent, closeOverlay } = useScene();
@@ -77,11 +77,7 @@ const ContentCard = ({ content, isOpen, onClose, isMobile }) => {
         left: '50%',
         transform: isOpen ? 'translate(-50%, 0) rotate(-1deg)' : 'translate(-50%, 120%) rotate(10deg)',
         opacity: isOpen ? 1 : 0,
-        backgroundColor: '#f8f8f8',
         color: '#1a1a1a',
-        border: '2px solid #1a1a1a',
-        borderRadius: '4px',
-        boxShadow: isOpen ? '8px 8px 0px rgba(0,0,0,0.1)' : '0px 0px 0px rgba(0,0,0,0)',
     } : {
         // DESKTOP: Karta po prawej
         width: 'clamp(280px, 30vw, 450px)', // <--- FLUID
@@ -89,11 +85,7 @@ const ContentCard = ({ content, isOpen, onClose, isMobile }) => {
         top: '50%',
         transform: isOpen ? 'translateY(-50%) rotate(1deg)' : 'translate(150%, -50%) rotate(15deg)',
         opacity: isOpen ? 1 : 0,
-        backgroundColor: '#f8f8f8',
         color: '#1a1a1a',
-        border: '2px solid #1a1a1a',
-        borderRadius: '3px',
-        boxShadow: isOpen ? '12px 12px 0px rgba(0,0,0,0.1)' : '0px 0px 0px rgba(0,0,0,0)',
     };
 
     // Staggered animation helper (delays based on index)
@@ -173,8 +165,8 @@ const ContentCard = ({ content, isOpen, onClose, isMobile }) => {
                         display: 'flex',
                         flexDirection: 'column',
                         gap: '1.2rem',
-                        overflowY: 'auto',
-                        fontFamily: "'Courier New', Courier, monospace", // Typewriter vibe
+                        overflow: 'hidden',
+                        fontFamily: "'Cabin Sketch', cursive", // Hand-drawn vibe
                         pointerEvents: 'auto', // Re-enable clicks for the card
                         ...cardStyle,
                         // Override styles for grid layout to be centered and wider
@@ -189,8 +181,35 @@ const ContentCard = ({ content, isOpen, onClose, isMobile }) => {
                             transform: isOpen ? 'translate(-50%, -50%)' : 'translate(-50%, 100%)',
                         } : {})
                     }}
+                    className="studio-paper-card"
                     onClick={(e) => e.stopPropagation()} // Prevent closing when clicking card
                 >
+                    {/* SVG Border Overlay for Torn Paper */}
+                    <svg
+                        className="studio-border-overlay"
+                        viewBox="0 0 100 100"
+                        preserveAspectRatio="none"
+                        style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            pointerEvents: 'none',
+                            zIndex: 10
+                        }}
+                    >
+                        <path
+                            d="M 0 0 L 4 1 L 8 0 L 12 1 L 16 0 L 20 1 L 24 0 L 28 1 L 32 0 L 36 1 L 40 0 L 44 1 L 48 0 L 52 1 L 56 0 L 60 1 L 64 0 L 68 1 L 72 0 L 76 1 L 80 0 L 84 1 L 88 0 L 92 1 L 96 0 L 100 0 L 99 3 L 100 6 L 98 10 L 100 14 L 99 18 L 100 22 L 98 26 L 100 30 L 99 35 L 100 40 L 98 45 L 100 50 L 99 55 L 100 60 L 98 65 L 100 70 L 99 75 L 100 80 L 98 85 L 100 90 L 99 95 L 100 100 L 96 99 L 92 100 L 88 98 L 84 100 L 80 99 L 76 100 L 72 98 L 68 100 L 64 99 L 60 100 L 56 98 L 52 100 L 48 99 L 44 100 L 40 98 L 36 100 L 32 99 L 28 100 L 24 98 L 20 100 L 16 99 L 12 100 L 8 98 L 4 100 L 0 99 L 0.5 99.5 L 1 95 L 0 90 L 2 85 L 0 80 L 1 75 L 0 70 L 2 65 L 0 60 L 1 55 L 0 50 L 2 45 L 0 40 L 1 35 L 0 30 L 2 26 L 0 22 L 1 18 L 0 14 L 2 10 L 0 6 L 1 3 L 0 0 Z"
+                            fill="none"
+                            stroke="#1a1a1a"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            vectorEffect="non-scaling-stroke"
+                        />
+                    </svg>
+
                     {/* Paper Tape / Decor (Mobile Handle) */}
                     <div style={{
                         position: 'absolute',
@@ -227,7 +246,7 @@ const ContentCard = ({ content, isOpen, onClose, isMobile }) => {
                                 margin: 0,
                                 lineHeight: 1.1,
                                 fontWeight: 800,
-                                fontFamily: "sans-serif", // Clean, bold
+                                fontFamily: "'Rubik Scribble', cursive", // Clean, bold
                             }}>
                                 {content.title}
                             </h2>
@@ -235,26 +254,12 @@ const ContentCard = ({ content, isOpen, onClose, isMobile }) => {
 
                         <button
                             onClick={onClose}
-                            style={{
-                                background: 'transparent',
-                                border: '2px solid #1a1a1a',
-                                color: '#1a1a1a',
-                                width: '32px',
-                                height: '32px',
-                                borderRadius: '50%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '1.2rem',
-                                cursor: 'pointer',
-                                flexShrink: 0,
-                                marginLeft: '1rem',
-                                transition: 'transform 0.2s',
-                            }}
-                            onMouseOver={(e) => e.target.style.transform = 'scale(1.1)'}
-                            onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
+                            className="studio-close-btn"
+                            aria-label="Close"
                         >
-                            ✕
+                            <svg viewBox="0 0 24 24">
+                                <path d="M18 6L6 18M6 6l12 12" />
+                            </svg>
                         </button>
                     </div>
 
@@ -307,10 +312,10 @@ const ContentCard = ({ content, isOpen, onClose, isMobile }) => {
 
                                     {/* Caption */}
                                     <div style={{ textAlign: 'center' }}>
-                                        <h4 style={{ margin: '0 0 0.3rem 0', fontSize: '1rem', fontWeight: 700 }}>
+                                        <h4 style={{ margin: '0 0 0.3rem 0', fontSize: '1rem', fontWeight: 700, fontFamily: "'Rubik Scribble', cursive" }}>
                                             {item.label}
                                         </h4>
-                                        <span style={{ fontSize: '0.8rem', color: '#666', fontFamily: "monospace" }}>
+                                        <span style={{ fontSize: '1rem', color: '#666', fontFamily: "'Cabin Sketch', cursive" }}>
                                             {item.date}
                                         </span>
                                     </div>
@@ -356,23 +361,7 @@ const ContentCard = ({ content, isOpen, onClose, isMobile }) => {
                                     href={content.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    style={{
-                                        display: 'block',
-                                        width: '100%',
-                                        padding: '1rem',
-                                        backgroundColor: '#1a1a1a', // Black ink
-                                        color: '#fff',
-                                        textAlign: 'center',
-                                        textDecoration: 'none',
-                                        borderRadius: '2px', // Slight round
-                                        fontWeight: 700,
-                                        textTransform: 'uppercase',
-                                        letterSpacing: '1px',
-                                        fontSize: '0.9rem',
-                                        transition: 'opacity 0.2s',
-                                    }}
-                                    onMouseOver={(e) => e.target.style.opacity = 0.8}
-                                    onMouseOut={(e) => e.target.style.opacity = 1}
+                                    className="studio-action-button"
                                 >
                                     Open Link ↗
                                 </a>

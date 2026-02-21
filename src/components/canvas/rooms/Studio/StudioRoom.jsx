@@ -170,9 +170,10 @@ const StudioRoom = ({ showRoom, onReady }) => {
         monitorOffsets.current = items.map(() => 0);
 
         // Pre-compute totalHeight for seamless loop (avoid calculating in useFrame)
-        const minBaseY = Math.min(...items.map(m => m.baseY));
-        const maxBaseY = Math.max(...items.map(m => m.baseY));
-        const totalHeight = maxBaseY - minBaseY + VERTICAL_SPACING;
+        const minBaseY = items.length > 0 ? Math.min(...items.map(m => m.baseY)) : 0;
+        const maxBaseY = items.length > 0 ? Math.max(...items.map(m => m.baseY)) : 0;
+        // Make sure we have a baseline height so monitors don't instantly teleport if there's only 1 row
+        const totalHeight = Math.max(VERTICAL_SPACING * 3, maxBaseY - minBaseY + VERTICAL_SPACING);
 
         return { items, totalHeight };
     }, [latestContent.id, responsiveParams.towerRadius]);
@@ -498,30 +499,38 @@ const StudioRoom = ({ showRoom, onReady }) => {
 const MonitorBlock = ({ item, meshRef, isHovered, isSelected, onHover, onClick, disabled }) => {
     // Position.y is updated directly by parent's useFrame via meshRef
 
-    // Load Monitor textures (Blog)
-    const monitorFront = useLoader(TextureLoader, '/textures/studio/monitor_front.webp');
+    // Check platform types
+    const isBlogMonitor = item.platform === 'blog';
+    const isTvMonitor = item.platform === 'youtube';
+    const isPhoneMonitor = item.platform === 'tiktok';
+
+    // Determine the URL for the front texture (custom or default)
+    const frontTextureUrl = item.frontTexture || (
+        isBlogMonitor ? '/textures/studio/monitor_front.webp' :
+            isTvMonitor ? '/textures/studio/tv_front.webp' :
+                '/textures/studio/phone_front.webp'
+    );
+
+    // Load dynamic front texture
+    const frontTex = useLoader(TextureLoader, frontTextureUrl);
+
+    // Load Monitor textures (Blog) - shell
     const monitorBack = useLoader(TextureLoader, '/textures/studio/monitor_back.webp');
     const monitorTop = useLoader(TextureLoader, '/textures/studio/monitor_top.webp');
     const monitorBottom = useLoader(TextureLoader, '/textures/studio/monitor_bottom.webp');
     const monitorLeft = useLoader(TextureLoader, '/textures/studio/monitor_left.webp');
     const monitorRight = useLoader(TextureLoader, '/textures/studio/monitor_right.webp');
 
-    // Load TV textures (YouTube)
-    const tvFront = useLoader(TextureLoader, '/textures/studio/tv_front.webp');
+    // Load TV textures (YouTube) - shell
     const tvBack = useLoader(TextureLoader, '/textures/studio/tv_back.webp');
     const tvTop = useLoader(TextureLoader, '/textures/studio/tv_top.webp');
     const tvBottom = useLoader(TextureLoader, '/textures/studio/tv_bottom.webp');
     const tvSide = useLoader(TextureLoader, '/textures/studio/tv_side.webp');
 
-    // Load Phone textures (TikTok)
-    const phoneFront = useLoader(TextureLoader, '/textures/studio/phone_front.webp');
+    // Load Phone textures (TikTok) - shell
     const phoneBack = useLoader(TextureLoader, '/textures/studio/phone_back.webp');
     const phoneSide = useLoader(TextureLoader, '/textures/studio/phone_side.webp');
 
-    // Check platform types
-    const isBlogMonitor = item.platform === 'blog';
-    const isTvMonitor = item.platform === 'youtube';
-    const isPhoneMonitor = item.platform === 'tiktok';
 
     // Create materials array for box faces: [+X right, -X left, +Y top, -Y bottom, +Z front, -Z back]
     const materials = useMemo(() => {
@@ -531,7 +540,7 @@ const MonitorBlock = ({ item, meshRef, isHovered, isSelected, onHover, onClick, 
                 new THREE.MeshStandardMaterial({ map: monitorLeft, roughness: 0.5 }),  // -X left
                 new THREE.MeshStandardMaterial({ map: monitorTop, roughness: 0.5 }),   // +Y top
                 new THREE.MeshStandardMaterial({ map: monitorBottom, roughness: 0.5 }),// -Y bottom
-                new THREE.MeshStandardMaterial({ map: monitorFront, roughness: 0.5 }), // +Z front
+                new THREE.MeshStandardMaterial({ map: frontTex, roughness: 0.5 }), // +Z front (DYNAMIC)
                 new THREE.MeshStandardMaterial({ map: monitorBack, roughness: 0.5 }),  // -Z back
             ];
         } else if (isTvMonitor) {
@@ -540,7 +549,7 @@ const MonitorBlock = ({ item, meshRef, isHovered, isSelected, onHover, onClick, 
                 new THREE.MeshStandardMaterial({ map: tvSide, roughness: 0.5 }),   // -X left
                 new THREE.MeshStandardMaterial({ map: tvTop, roughness: 0.5 }),    // +Y top
                 new THREE.MeshStandardMaterial({ map: tvBottom, roughness: 0.5 }), // -Y bottom
-                new THREE.MeshStandardMaterial({ map: tvFront, roughness: 0.5 }),  // +Z front
+                new THREE.MeshStandardMaterial({ map: frontTex, roughness: 0.5 }),  // +Z front (DYNAMIC)
                 new THREE.MeshStandardMaterial({ map: tvBack, roughness: 0.5 }),   // -Z back
             ];
         } else if (isPhoneMonitor) {
@@ -549,16 +558,16 @@ const MonitorBlock = ({ item, meshRef, isHovered, isSelected, onHover, onClick, 
                 new THREE.MeshStandardMaterial({ map: phoneSide, roughness: 0.5 }), // -X left
                 new THREE.MeshStandardMaterial({ map: phoneSide, roughness: 0.5 }), // +Y top
                 new THREE.MeshStandardMaterial({ map: phoneSide, roughness: 0.5 }), // -Y bottom
-                new THREE.MeshStandardMaterial({ map: phoneFront, roughness: 0.5 }),// +Z front
+                new THREE.MeshStandardMaterial({ map: frontTex, roughness: 0.5 }),// +Z front (DYNAMIC)
                 new THREE.MeshStandardMaterial({ map: phoneBack, roughness: 0.5 }), // -Z back
             ];
         }
         return null;
     }, [
         isBlogMonitor, isTvMonitor, isPhoneMonitor,
-        monitorFront, monitorBack, monitorTop, monitorBottom, monitorLeft, monitorRight,
-        tvFront, tvBack, tvTop, tvBottom, tvSide,
-        phoneFront, phoneBack, phoneSide
+        frontTex, monitorBack, monitorTop, monitorBottom, monitorLeft, monitorRight,
+        tvBack, tvTop, tvBottom, tvSide,
+        phoneBack, phoneSide
     ]);
 
     return (
