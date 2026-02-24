@@ -186,13 +186,7 @@ const CorridorSegment = ({
             ))}
 
             {/* === LIGHTING === */}
-            <pointLight
-                position={[0, 0, zOffset - 5]}
-                intensity={0.6}
-                color="#fffaf0"
-                distance={8}
-                decay={2}
-            />
+            {/* pointLight removed for optimization as it didn't affect visuals significantly */}
 
             <CorridorDecorations
                 segmentLength={SEGMENT_LENGTH}
