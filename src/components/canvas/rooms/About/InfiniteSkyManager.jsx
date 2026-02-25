@@ -19,6 +19,8 @@ import '../../shaders/RevealBasicMaterial'; // Registers brush-stroke reveal for
  * Reusable Button Component with Hover Effect + Brush-Stroke Reveal
  */
 const AwardButton = ({ onClick, texture, paintedTexture, width, height, position, onHoverChange }) => {
+    const { viewport } = useThree();
+    const isMobile = viewport.width < 8;
     const meshRef = useRef();
     const buttonRevealRef = useRef(); // RevealBasicMaterial ref for button sketch
     const paintedRef = useRef(); // Painted button mesh visibility
@@ -38,6 +40,7 @@ const AwardButton = ({ onClick, texture, paintedTexture, width, height, position
     });
 
     const handlePointerOver = () => {
+        if (isMobile) return;
         setHovered(true);
         document.body.style.cursor = 'pointer';
         onHoverChange?.(true);
@@ -52,10 +55,14 @@ const AwardButton = ({ onClick, texture, paintedTexture, width, height, position
             });
         }
         if (hideDelayRef.current) hideDelayRef.current.kill();
-        if (paintedRef.current) paintedRef.current.visible = true;
+        if (paintedRef.current) {
+            paintedRef.current.visible = true;
+            if (paintedRef.current.material) paintedRef.current.material.opacity = 1;
+        }
     };
 
     const handlePointerOut = () => {
+        if (isMobile) return;
         setHovered(false);
         document.body.style.cursor = 'auto';
         onHoverChange?.(false);
@@ -70,18 +77,21 @@ const AwardButton = ({ onClick, texture, paintedTexture, width, height, position
             });
         }
         hideDelayRef.current = gsap.delayedCall(0.55, () => {
-            if (paintedRef.current) paintedRef.current.visible = false;
+            if (paintedRef.current && paintedRef.current.material) {
+                paintedRef.current.material.opacity = 0;
+            }
         });
     };
 
     return (
         <group ref={meshRef} position={position}>
             {/* Painted button (behind) - hidden until hover */}
-            <mesh ref={paintedRef} position={[0, 0, -0.001]} visible={false}>
+            <mesh ref={paintedRef} position={[0, 0, -0.001]} visible={true}>
                 <planeGeometry args={[width, height]} />
                 <meshBasicMaterial
                     map={paintedTexture}
                     transparent
+                    opacity={0}
                     side={THREE.DoubleSide}
                     alphaTest={0.5}
                     depthWrite={false}
@@ -236,7 +246,8 @@ const InfiniteSkyManager = ({ scrollProgress = 0 }) => {
 const IntroMilestone = ({ z, scrollProgress }) => {
     // Load avatar texture
     const avatarTexture = useLoader(THREE.TextureLoader, '/textures/about/awatarnachmurce.webp');
-    const { camera } = useThree();
+    const { camera, viewport } = useThree();
+    const isMobile = viewport.width < 8;
 
     // Refs for all animated elements
     const groupRef = useRef();
@@ -448,7 +459,8 @@ const AWARDS_DATA = {
  * SOTY (center), SOTD, SOTM, Featured (behind)
  */
 const AwardsMilestone = ({ z, scrollProgress }) => {
-    const { camera } = useThree();
+    const { camera, viewport } = useThree();
+    const isMobile = viewport.width < 8;
     const { openOverlay } = useScene();
     const groupRef = useRef();
     const sotyRef = useRef();
@@ -470,11 +482,11 @@ const AwardsMilestone = ({ z, scrollProgress }) => {
     const sotyTexture = useLoader(THREE.TextureLoader, '/textures/about/SOTY.webp');
     const sotdTexture = useLoader(THREE.TextureLoader, '/textures/about/SOTD.webp');
     const sotmTexture = useLoader(THREE.TextureLoader, '/textures/about/SOTM.webp');
-    const sotyPaintedTexture = useLoader(THREE.TextureLoader, '/textures/about/SOTY_painted.webp');
-    const sotdPaintedTexture = useLoader(THREE.TextureLoader, '/textures/about/SOTD_painted.webp');
-    const sotmPaintedTexture = useLoader(THREE.TextureLoader, '/textures/about/SOTM_painted.webp');
+    const sotyPaintedTexture = useLoader(THREE.TextureLoader, isMobile ? '/textures/about/SOTY.webp' : '/textures/about/SOTY_painted.webp');
+    const sotdPaintedTexture = useLoader(THREE.TextureLoader, isMobile ? '/textures/about/SOTD.webp' : '/textures/about/SOTD_painted.webp');
+    const sotmPaintedTexture = useLoader(THREE.TextureLoader, isMobile ? '/textures/about/SOTM.webp' : '/textures/about/SOTM_painted.webp');
     const buttonTexture = useLoader(THREE.TextureLoader, '/textures/about/button.webp');
-    const buttonPaintedTexture = useLoader(THREE.TextureLoader, '/textures/about/button_painted.webp');
+    const buttonPaintedTexture = useLoader(THREE.TextureLoader, isMobile ? '/textures/about/button.webp' : '/textures/about/button_painted.webp');
 
     // Color space fix
     sotyTexture.colorSpace = THREE.SRGBColorSpace;
@@ -502,6 +514,7 @@ const AwardsMilestone = ({ z, scrollProgress }) => {
 
     // Card hover handler factory
     const makeCardHoverHandler = (revealRef, paintedRef, hideDelayRef) => (isHovered) => {
+        if (isMobile) return;
         if (isHovered) {
             if (revealRef.current) {
                 gsap.to(revealRef.current, {
@@ -512,7 +525,10 @@ const AwardsMilestone = ({ z, scrollProgress }) => {
                 });
             }
             if (hideDelayRef.current) hideDelayRef.current.kill();
-            if (paintedRef.current) paintedRef.current.visible = true;
+        if (paintedRef.current) {
+            paintedRef.current.visible = true;
+            if (paintedRef.current.material) paintedRef.current.material.opacity = 1;
+        }
         } else {
             if (revealRef.current) {
                 gsap.to(revealRef.current, {
@@ -523,8 +539,10 @@ const AwardsMilestone = ({ z, scrollProgress }) => {
                 });
             }
             hideDelayRef.current = gsap.delayedCall(0.55, () => {
-                if (paintedRef.current) paintedRef.current.visible = false;
-            });
+            if (paintedRef.current && paintedRef.current.material) {
+                paintedRef.current.material.opacity = 0;
+            }
+        });
         }
     };
 
@@ -592,11 +610,12 @@ const AwardsMilestone = ({ z, scrollProgress }) => {
             {/* === SOTD (behind SOTY, rendered second) === */}
             <group ref={sotdRef} position={[0, 0.5, -0.5]}>
                 {/* Painted card (behind) - hidden until button hover */}
-                <mesh ref={sotdCardPaintedRef} position={[0, 0, -0.001]} visible={false}>
+                <mesh ref={sotdCardPaintedRef} position={[0, 0, -0.001]} visible={true}>
                     <planeGeometry args={[cardHeight * sotdAspect, cardHeight]} />
                     <meshBasicMaterial
                         map={sotdPaintedTexture}
                         transparent
+                        opacity={0}
                         side={THREE.DoubleSide}
                         alphaTest={0.5}
                     />
@@ -652,11 +671,12 @@ const AwardsMilestone = ({ z, scrollProgress }) => {
             {/* === SOTM (behind SOTY, rendered third) === */}
             <group ref={sotmRef} position={[0, 0.5, -0.2]}>
                 {/* Painted card (behind) - hidden until button hover */}
-                <mesh ref={sotmCardPaintedRef} position={[0, 0, -0.001]} visible={false}>
+                <mesh ref={sotmCardPaintedRef} position={[0, 0, -0.001]} visible={true}>
                     <planeGeometry args={[cardHeight * sotmAspect, cardHeight]} />
                     <meshBasicMaterial
                         map={sotmPaintedTexture}
                         transparent
+                        opacity={0}
                         side={THREE.DoubleSide}
                         alphaTest={0.5}
                     />
@@ -712,11 +732,12 @@ const AwardsMilestone = ({ z, scrollProgress }) => {
             {/* === SOTY (front, center, rendered LAST = always on top) === */}
             <group ref={sotyRef} position={[0, 0.5, 0]}>
                 {/* Painted card (behind) - hidden until button hover */}
-                <mesh ref={sotyCardPaintedRef} position={[0, 0, -0.001]} visible={false}>
+                <mesh ref={sotyCardPaintedRef} position={[0, 0, -0.001]} visible={true}>
                     <planeGeometry args={[cardHeight * sotyAspect, cardHeight]} />
                     <meshBasicMaterial
                         map={sotyPaintedTexture}
                         transparent
+                        opacity={0}
                         side={THREE.DoubleSide}
                         alphaTest={0.5}
                     />
@@ -776,7 +797,8 @@ const AwardsMilestone = ({ z, scrollProgress }) => {
  * UO Island (left) and Freelance Island (right) floating in clouds
  */
 const JourneyMilestone = ({ z, scrollProgress }) => {
-    const { camera } = useThree();
+    const { camera, viewport } = useThree();
+    const isMobile = viewport.width < 8;
     const groupRef = useRef();
     const uoRef = useRef();
     const freelanceRef = useRef();
@@ -958,8 +980,10 @@ const SIZE_MULTIPLIERS = {
 // Individual balloon component
 const SkillBalloon = ({ config, revealFactor, spreadFactor, time }) => {
     const { viewport } = useThree();
+    const isMobileViewport = viewport.width < 8; // Local const for texture loading before state
     const texture = useLoader(THREE.TextureLoader, config.texture);
-    const paintedTexture = useLoader(THREE.TextureLoader, config.paintedTexture);
+    const paintedTextureUrl = isMobileViewport ? config.texture : config.paintedTexture;
+    const paintedTexture = useLoader(THREE.TextureLoader, paintedTextureUrl);
     texture.colorSpace = THREE.SRGBColorSpace;
     paintedTexture.colorSpace = THREE.SRGBColorSpace;
 
@@ -1014,6 +1038,7 @@ const SkillBalloon = ({ config, revealFactor, spreadFactor, time }) => {
 
     // Hover handlers for brush-stroke reveal
     const handlePointerOver = (e) => {
+        if (isMobile) return;
         e.stopPropagation();
         if (!isPopping) setHovered(true);
 
@@ -1028,9 +1053,11 @@ const SkillBalloon = ({ config, revealFactor, spreadFactor, time }) => {
         }
         if (hideDelayRef.current) hideDelayRef.current.kill();
         if (paintedMeshRef.current) paintedMeshRef.current.visible = true;
+        if (paintedMatRef.current) paintedMatRef.current.opacity = 1;
     };
 
     const handlePointerOut = (e) => {
+        if (isMobile) return;
         e.stopPropagation();
         setHovered(false);
 
@@ -1044,7 +1071,7 @@ const SkillBalloon = ({ config, revealFactor, spreadFactor, time }) => {
             });
         }
         hideDelayRef.current = gsap.delayedCall(0.55, () => {
-            if (paintedMeshRef.current) paintedMeshRef.current.visible = false;
+            if (paintedMatRef.current) paintedMatRef.current.opacity = 0;
         });
     };
 
@@ -1090,8 +1117,7 @@ const SkillBalloon = ({ config, revealFactor, spreadFactor, time }) => {
                 if (textRef.current) textRef.current.fillOpacity = 0;
                 // Reset reveal state on respawn
                 if (balloonRevealRef.current) balloonRevealRef.current.uProgress = 0;
-                if (paintedMeshRef.current) paintedMeshRef.current.visible = false;
-                if (paintedMatRef.current) paintedMatRef.current.opacity = 1;
+                if (paintedMatRef.current) paintedMatRef.current.opacity = 0;
             }
         }
 
@@ -1162,12 +1188,13 @@ const SkillBalloon = ({ config, revealFactor, spreadFactor, time }) => {
         >
             <group position={[currentMagnet.current.x, currentMagnet.current.y, 0]}>
                 {/* Painted balloon (behind) - hidden until hover */}
-                <mesh ref={paintedMeshRef} visible={false}>
+                <mesh ref={paintedMeshRef} visible={true}>
                     <planeGeometry args={[baseHeight * aspect, baseHeight]} />
                     <meshBasicMaterial
                         ref={paintedMatRef}
                         map={paintedTexture}
                         transparent
+                        opacity={0}
                         side={THREE.DoubleSide}
                         alphaTest={0.5}
                         depthWrite={false}
@@ -1229,7 +1256,8 @@ const SkillBalloon = ({ config, revealFactor, spreadFactor, time }) => {
 };
 
 const SkillsMilestone = ({ z, scrollProgress }) => {
-    const { camera } = useThree();
+    const { camera, viewport } = useThree();
+    const isMobile = viewport.width < 8;
     const groupRef = useRef();
     const [revealFactor, setRevealFactor] = useState(0);
     const [spreadFactor, setSpreadFactor] = useState(0);

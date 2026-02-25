@@ -20,6 +20,8 @@ const PaperMaterial = forwardRef(({ color = '#ffffff', roughness = 0.6, map, sid
         shader.uniforms.uTime = { value: 0 };
         shader.uniforms.uWindStrength = { value: 0 }; // Extra flutter intensity
         shader.uniforms.mapBack = { value: null }; // Back texture
+        shader.uniforms.mapPainted = { value: null }; // Painted texture
+        shader.uniforms.uProgress = { value: 0.0 }; // Reveal progress
 
         // Prepend uniforms to vertex shader
         shader.vertexShader = `
@@ -50,6 +52,22 @@ const PaperMaterial = forwardRef(({ color = '#ffffff', roughness = 0.6, map, sid
         // Inject Fragment Shader logic for double-sided texturing
         shader.fragmentShader = `
             uniform sampler2D mapBack;
+            uniform sampler2D mapPainted;
+            uniform float uProgress;
+
+            float revealRand(vec2 n) { 
+                return fract(sin(dot(n, vec2(12.9898, 4.1414))) * 43758.5453);
+            }
+
+            float revealNoise(vec2 p){
+                vec2 ip = floor(p);
+                vec2 u = fract(p);
+                u = u*u*(3.0-2.0*u);
+                float res = mix(
+                    mix(revealRand(ip),revealRand(ip+vec2(1.0,0.0)),u.x),
+                    mix(revealRand(ip+vec2(0.0,1.0)),revealRand(ip+vec2(1.0,1.0)),u.x),u.y);
+                return res*res;
+            }
         ` + shader.fragmentShader;
 
         shader.fragmentShader = shader.fragmentShader.replace(
@@ -57,6 +75,17 @@ const PaperMaterial = forwardRef(({ color = '#ffffff', roughness = 0.6, map, sid
             `
             #ifdef USE_MAP
                 vec4 texColor = texture2D( map, vMapUv );
+
+                // --- Added Brush Reveal Logic ---
+                if (gl_FrontFacing && uProgress > 0.001) {
+                    vec4 paintedColor = texture2D(mapPainted, vMapUv);
+                    float rn = revealNoise(vMapUv * 15.0) * 0.15;
+                    float maskValue = (1.0 - vMapUv.y) + rn;
+                    float threshold = uProgress * 1.5;
+                    if (maskValue < threshold) {
+                        texColor = paintedColor;
+                    }
+                }
                 
                 // Flip Y UV to turn it upside down as requested
                 // And keep X standard (vMapUv.x) to create a mirror effect (since back view naturally mirrors)
@@ -80,7 +109,10 @@ const PaperMaterial = forwardRef(({ color = '#ffffff', roughness = 0.6, map, sid
         if (props.mapBack && shader.uniforms.mapBack) {
             shader.uniforms.mapBack.value = props.mapBack;
         }
-    }, [props.mapBack]);
+        if (props.mapPainted && shader.uniforms.mapPainted) {
+            shader.uniforms.mapPainted.value = props.mapPainted;
+        }
+    }, [props.mapBack, props.mapPainted]);
 
     useImperativeHandle(ref, () => ({
         // Getter/Setter for bend
@@ -101,9 +133,18 @@ const PaperMaterial = forwardRef(({ color = '#ffffff', roughness = 0.6, map, sid
         get windStrength() {
             return materialRef.current?.userData?.shader?.uniforms.uWindStrength.value || 0;
         },
+        // Getter/Setter for uProgress
+        set uProgress(value) {
+            if (materialRef.current?.userData?.shader) {
+                materialRef.current.userData.shader.uniforms.uProgress.value = value;
+            }
+        },
+        get uProgress() {
+            return materialRef.current?.userData?.shader?.uniforms.uProgress.value || 0;
+        },
         // We can also expose the raw material if needed
         material: materialRef.current
-    }));
+    }), []);
 
     useFrame((state) => {
         if (materialRef.current?.userData?.shader) {

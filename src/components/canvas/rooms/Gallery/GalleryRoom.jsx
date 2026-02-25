@@ -13,6 +13,7 @@ const UNIQUE_PROJECTS = [
         id: 'monetune',
         title: 'MONETUNE',
         front: '/textures/gallery/monetuneprzod.webp',
+        painted: '/textures/gallery/monetuneprzod_painted.webp',
         url: 'https://monetune.pl',
         description: 'MoneTune is a step-by-step blueprint that teaches beginners how to generate passive income using AI-created music. Without any musical skills, you will learn how to easily produce professional tracks, publish them on platforms like Spotify, and monetize your digital assets.',
         techStack: ['/textures/gallery/wordpresslogo.webp', '/textures/gallery/elementorlogo.webp', '/textures/gallery/phplogo.webp', '/textures/gallery/csslogo.webp']
@@ -21,6 +22,7 @@ const UNIQUE_PROJECTS = [
         id: 'timber',
         title: 'TIMBERKITTY',
         front: '/textures/gallery/timberkittyprzod.webp',
+        painted: '/textures/gallery/timberkittyprzod_painted.webp',
         url: 'https://timberkitty.netlify.app',
         description: 'TimberKitty is an addictive, free-to-play browser arcade game built in pure JavaScript. Players control a lumberjack cat to chop wood, save birds, complete daily missions, and compete on global leaderboards.',
         techStack: ['/textures/gallery/jslogo.webp', '/textures/gallery/htmllogo.webp', '/textures/gallery/csslogo.webp', '/textures/gallery/firebaselogo.webp']
@@ -29,6 +31,7 @@ const UNIQUE_PROJECTS = [
         id: 'young',
         title: 'YOUNG MULTI',
         front: '/textures/gallery/youngmultiprzod.webp',
+        painted: '/textures/gallery/youngmultiprzod_painted.webp',
         url: 'https://young-multi-strona.netlify.app',
         description: 'A sleek, modern concept website dedicated to the Polish rapper and creator Young Multi. It serves as a promotional landing page designed to highlight his personal brand, music, and online presence.',
         techStack: ['/textures/gallery/reactlogo.webp', '/textures/gallery/tailwindlogo.webp', '/textures/gallery/htmllogo.webp', '/textures/gallery/netlifylogo.webp']
@@ -37,6 +40,7 @@ const UNIQUE_PROJECTS = [
         id: 'bio',
         title: 'BIO',
         front: '/textures/gallery/bioprzod.webp',
+        painted: '/textures/gallery/bioprzod_painted.webp',
         url: 'https://tomkingbio.netlify.app',
         description: 'A fast, modern personal bio page serving as a central hub for my digital footprint. It showcases my latest coding projects, web development services, YouTube videos, and recommended music artists.',
         techStack: ['/textures/gallery/htmllogo.webp', '/textures/gallery/csslogo.webp', '/textures/gallery/jslogo.webp', '/textures/gallery/netlifylogo.webp']
@@ -108,14 +112,26 @@ const GalleryRoom = ({ showRoom, onReady }) => {
     const BALCONY_DEPTH = 3;
     const RAILING_HEIGHT = 1.1;
 
-    // --- TEXTURES ---
+    // --- TEXTURES AND RESPONSIVENESS ---
+    const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     // Load all project front textures in a flat array
     const textureUrls = UNIQUE_PROJECTS.map(p => p.front);
     const projectTextures = useTexture(textureUrls);
 
-    // Load the universal back texture and the button texture
-    const backTextureRaw = useTexture('/textures/gallery/tylkartki.webp');
-    const overlayTextureRaw = useTexture('/textures/gallery/przyciskdotylukartki.webp');
+    // Load painted textures only on desktop, fallback to front if mobile
+    const paintedUrls = UNIQUE_PROJECTS.map(p => (!isMobile && p.painted) ? p.painted : p.front);
+    const paintedTextures = useTexture(paintedUrls);
+
+    // Load the universal back texture and the button texture conditionally
+    const backTextureRaw = useTexture(isMobile ? '/textures/gallery/tylkartki.webp' : '/textures/gallery/tylkartki_painted.png');
+    const overlayTextureRaw = useTexture(isMobile ? '/textures/gallery/przyciskdotylukartki.webp' : '/textures/gallery/przyciskdotylukartki_painted.png');
 
     // Preload tech stack logos to prevent stuttering on first flip
     const allLogos = [
@@ -138,11 +154,15 @@ const GalleryRoom = ({ showRoom, onReady }) => {
 
             // Extract front texture
             const frontTex = projectTextures[projectIndex];
+            const paintedTex = paintedTextures[projectIndex];
 
             // Configure textures
             if (frontTex) {
                 frontTex.colorSpace = THREE.SRGBColorSpace;
                 // frontTex.encoding = THREE.sRGBEncoding;
+            }
+            if (paintedTex) {
+                paintedTex.colorSpace = THREE.SRGBColorSpace;
             }
             if (backTextureRaw) {
                 backTextureRaw.colorSpace = THREE.SRGBColorSpace;
@@ -155,6 +175,7 @@ const GalleryRoom = ({ showRoom, onReady }) => {
                 ...projectData,
                 index: i,
                 frontTexture: frontTex,
+                paintedTexture: (paintedTex !== frontTex && !isMobile) ? paintedTex : null,
                 backTexture: backTextureRaw,
                 buttonTexture: overlayTextureRaw
             };
@@ -371,6 +392,7 @@ const GalleryRoom = ({ showRoom, onReady }) => {
                             isSelected={selectedCard === i}
                             scrollToIndex={scrollToIndex}
                             onClick={handleCardClick}
+                            isMobile={isMobile}
                         />
                     ))}
                 </group>
@@ -529,7 +551,7 @@ const FlyingBird = ({ texture }) => {
 };
 
 // Sub-component for individual project cards
-const ProjectCard = forwardRef(({ index, project, clothespinTexture, currentScroll, materials, curve, isSelected, scrollToIndex, onClick }, ref) => {
+const ProjectCard = forwardRef(({ index, project, clothespinTexture, currentScroll, materials, curve, isSelected, scrollToIndex, onClick, isMobile }, ref) => {
     const cardRef = useRef();
     const paperRef = useRef(); // Ref for the moving part (Paper)
     const materialRef = useRef();
@@ -555,6 +577,16 @@ const ProjectCard = forwardRef(({ index, project, clothespinTexture, currentScro
                     onComplete: () => {
                         setIsAnimating(false);
                         resolve();
+
+                        // Unpaint the card after it returns to the clothespin
+                        if (project.paintedTexture && materialRef.current) {
+                            gsap.to(materialRef.current, {
+                                uProgress: 0.0,
+                                duration: 0.5,
+                                ease: 'power2.out',
+                                overwrite: 'auto'
+                            });
+                        }
                     }
                 });
 
@@ -665,6 +697,17 @@ const ProjectCard = forwardRef(({ index, project, clothespinTexture, currentScro
                             duration: 0.15,
                             ease: 'power2.out'
                         }, '<');
+
+                        // Keep painted or finish painting to 1.0 when opened
+                        // Running with gsap.to independently to avoid blocking the timeline duration
+                        if (project.paintedTexture) {
+                            gsap.to(materialRef.current, {
+                                uProgress: 1.0,
+                                duration: 0.3,
+                                ease: 'power2.out',
+                                overwrite: 'auto'
+                            });
+                        }
                     }
 
                     timeline.to(paperRef.current.position, {
@@ -857,8 +900,36 @@ const ProjectCard = forwardRef(({ index, project, clothespinTexture, currentScro
         <group
             ref={cardRef}
             onClick={handleClick}
-            onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
-            onPointerOut={() => setHovered(false)}
+            onPointerEnter={(e) => {
+                if (isMobile) return;
+                e.stopPropagation();
+                setHovered(true);
+
+                // Brush reveal animation
+                if (materialRef.current && project.paintedTexture && !isSelected) {
+                    gsap.to(materialRef.current, {
+                        uProgress: 1.0,
+                        duration: 0.8,
+                        ease: 'power2.out',
+                        overwrite: 'auto'
+                    });
+                }
+            }}
+            onPointerLeave={(e) => {
+                if (isMobile) return;
+                e.stopPropagation();
+                setHovered(false);
+
+                // Reverse brush reveal animation ONLY if NOT selected
+                if (materialRef.current && project.paintedTexture && !isSelected) {
+                    gsap.to(materialRef.current, {
+                        uProgress: 0.0,
+                        duration: 0.5,
+                        ease: 'power2.out',
+                        overwrite: 'auto'
+                    });
+                }
+            }}
         >
             {/* Clothespin (Top Center) - Does NOT move with paperRef */}
             <mesh position={[0, -0.08, 0.15]} rotation={[0, 0, Math.PI]}>
@@ -883,6 +954,7 @@ const ProjectCard = forwardRef(({ index, project, clothespinTexture, currentScro
                         color="#ffffff"
                         map={project.frontTexture}
                         mapBack={project.backTexture}
+                        mapPainted={project.paintedTexture}
                         side={THREE.DoubleSide}
                         roughness={0.6}
                     />
@@ -925,14 +997,16 @@ const ProjectCard = forwardRef(({ index, project, clothespinTexture, currentScro
                                 window.open(project.url, '_blank');
                             }
                         }}
-                        onPointerOver={(e) => {
+                        onPointerEnter={(e) => {
                             if (isSelected) {
                                 e.stopPropagation();
                                 setBtnHovered(true);
                             }
                         }}
-                        onPointerOut={(e) => {
-                            e.stopPropagation();
+                        onPointerLeave={(e) => {
+                            if (isSelected) {
+                                e.stopPropagation();
+                            }
                             setBtnHovered(false);
                         }}
                     >
