@@ -38,8 +38,9 @@ const RAW_CONTENT_DATA = [
         id: 'yt-001',
         platform: 'youtube',
         title: 'I Built a Website for Young Multi for $__,___',
-        description: 'It’s late 2025, we’re flying to space, and Young Multi... still didn’t have his own website. So I took matters into my own hands.',
+        description: 'It\'s late 2025, we\'re flying to space, and Young Multi... still didn\'t have his own website. So I took matters into my own hands.',
         frontTexture: '/textures/studio/tvfront_filmikprojektdlamultiego.webp',
+        paintedFrontTexture: '/textures/studio/tvfront_filmikprojektdlamultiego_painted.webp',
         thumbnail: null,
         url: 'https://www.youtube.com/watch?v=AOz4fB7NV_I&t=21s',
         date: '2026-01-10',
@@ -52,6 +53,7 @@ const RAW_CONTENT_DATA = [
         title: 'Turning an ordinary selfie into a professional AI photoshoot! How Google Nano Banana transformed my photo! (For Free)',
         description: '📸 Watch how I turned a basic selfie into a professional photoshoot using a free AI tool from Google! In this step-by-step tutorial, I reveal my secret trick for crafting perfect prompts, even if you\'re a total beginner.',
         frontTexture: '/textures/studio/tvfront_filmikedytowaniezdjec.webp',
+        paintedFrontTexture: '/textures/studio/tvfront_filmikedytowaniezdjec_painted.webp',
         thumbnail: null,
         url: 'https://www.youtube.com/watch?v=WQTOD7uXHNY&t=10s',
         date: '2025-10-11',
@@ -130,8 +132,9 @@ const RAW_CONTENT_DATA = [
         id: 'blog-001',
         platform: 'blog',
         title: 'Double Site of the Day confirmed! 🏆🏆',
-        description: 'You’ve probably noticed I’ve been sharing a bunch of SOTD certificates on my stories lately. Yes, it’s true—the YOUNG MULTI project officially scored a "double" and got recognized on the international stage...',
+        description: 'You\'ve probably noticed I\'ve been sharing a bunch of SOTD certificates on my stories lately. Yes, it\'s true—the YOUNG MULTI project officially scored a "double" and got recognized on the international stage...',
         frontTexture: '/textures/studio/monitorfront_postnafbdoublewinner.webp',
+        paintedFrontTexture: '/textures/studio/monitorfront_postnafbdoublewinner_painted.webp',
         thumbnail: null,
         url: 'https://www.facebook.com/tomasz.szmajda.58/posts/pfbid0TmvbFrc9ASYBQHpv3fcz5gM9WZrgrLMzZFbbtSFySmzQNickLRNh6ubu388D7hHXl?rdid=nWrKXJXR8EqibqvZ',
         date: '2026-01-08',
@@ -215,6 +218,7 @@ const RAW_CONTENT_DATA = [
         title: 'Zaobserwuj mnie na TikToku! ✨',
         description: 'Dzielę się tam wskazówkami z designu, kodowania i nie tylko.',
         frontTexture: '/textures/studio/phonefront_followmeontiktok.webp',
+        paintedFrontTexture: '/textures/studio/phonefront_followmeontiktok_painted.webp',
         thumbnail: null,
         url: 'https://www.tiktok.com/@itompoland',
         date: '2026-01-09',
@@ -345,10 +349,14 @@ const RAW_CONTENT_DATA = [
 ];
 
 const ytTextures = ['/textures/studio/tvfront_filmikprojektdlamultiego.webp', '/textures/studio/tvfront_filmikedytowaniezdjec.webp'];
+const ytPaintedTextures = ['/textures/studio/tvfront_filmikprojektdlamultiego_painted.webp', '/textures/studio/tvfront_filmikedytowaniezdjec_painted.webp'];
 const blogTextures = ['/textures/studio/monitorfront_postnafbdoublewinner.webp'];
+const blogPaintedTextures = ['/textures/studio/monitorfront_postnafbdoublewinner_painted.webp'];
 const ttTextures = ['/textures/studio/phonefront_followmeontiktok.webp'];
+const ttPaintedTextures = ['/textures/studio/phonefront_followmeontiktok_painted.webp'];
 
 let ytIdx = 0, blogIdx = 0, ttIdx = 0;
+let ytPIdx = 0, blogPIdx = 0, ttPIdx = 0;
 
 export const CONTENT_DATA = RAW_CONTENT_DATA.map((item) => {
     return {
@@ -357,6 +365,11 @@ export const CONTENT_DATA = RAW_CONTENT_DATA.map((item) => {
             item.platform === 'youtube' ? ytTextures[ytIdx++ % ytTextures.length] :
                 item.platform === 'blog' ? blogTextures[blogIdx++ % blogTextures.length] :
                     ttTextures[ttIdx++ % ttTextures.length]
+        ),
+        paintedFrontTexture: item.paintedFrontTexture || (
+            item.platform === 'youtube' ? ytPaintedTextures[ytPIdx++ % ytPaintedTextures.length] :
+                item.platform === 'blog' ? blogPaintedTextures[blogPIdx++ % blogPaintedTextures.length] :
+                    ttPaintedTextures[ttPIdx++ % ttPaintedTextures.length]
         )
     };
 });

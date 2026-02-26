@@ -6,6 +6,7 @@ import { CONTENT_DATA, PLATFORM_CONFIG, getLatestContent } from './contentData';
 import { useScene } from '../../../../context/SceneContext';
 import { TextureLoader } from 'three';
 import FloatingCodeParticles from './FloatingCodeParticles';
+import '../../shaders/RevealMaterial';
 
 // ============================================
 // CONFIG - Adjust these values as needed
@@ -494,10 +495,21 @@ const StudioRoom = ({ showRoom, onReady }) => {
 };
 
 // ===========================================
-// MONITOR BLOCK COMPONENT (Simplified - no useFrame)
+// MONITOR BLOCK COMPONENT - with Paint Reveal on Hover
+// Uses proven two-box approach: painted box behind + sketch box with revealMaterial in front
 // ===========================================
 const MonitorBlock = ({ item, meshRef, isHovered, isSelected, onHover, onClick, disabled }) => {
     // Position.y is updated directly by parent's useFrame via meshRef
+    const paintedBoxRef = useRef();
+    const hideDelayRef = useRef();
+    // RevealMaterial refs for each face (up to 6)
+    const matRef0 = useRef(); // +X right
+    const matRef1 = useRef(); // -X left
+    const matRef2 = useRef(); // +Y top
+    const matRef3 = useRef(); // -Y bottom
+    const matRef4 = useRef(); // +Z front
+    const matRef5 = useRef(); // -Z back
+    const matRefs = [matRef0, matRef1, matRef2, matRef3, matRef4, matRef5];
 
     // Check platform types
     const isBlogMonitor = item.platform === 'blog';
@@ -511,64 +523,149 @@ const MonitorBlock = ({ item, meshRef, isHovered, isSelected, onHover, onClick, 
                 '/textures/studio/phone_front.webp'
     );
 
+    // Determine painted front texture URL
+    const paintedFrontTextureUrl = item.paintedFrontTexture || (
+        isBlogMonitor ? '/textures/studio/monitor_front_painted.webp' :
+            isTvMonitor ? '/textures/studio/tv_front_painted.webp' :
+                '/textures/studio/phone_front_painted.webp'
+    );
+
     // Load dynamic front texture
     const frontTex = useLoader(TextureLoader, frontTextureUrl);
+    const frontPaintedTex = useLoader(TextureLoader, paintedFrontTextureUrl);
 
-    // Load Monitor textures (Blog) - shell
+    // Load Monitor textures (Blog) - shell + painted
     const monitorBack = useLoader(TextureLoader, '/textures/studio/monitor_back.webp');
     const monitorTop = useLoader(TextureLoader, '/textures/studio/monitor_top.webp');
     const monitorBottom = useLoader(TextureLoader, '/textures/studio/monitor_bottom.webp');
     const monitorLeft = useLoader(TextureLoader, '/textures/studio/monitor_left.webp');
     const monitorRight = useLoader(TextureLoader, '/textures/studio/monitor_right.webp');
+    const monitorBottomPainted = useLoader(TextureLoader, '/textures/studio/monitor_bottom_painted.webp');
+    const monitorLeftPainted = useLoader(TextureLoader, '/textures/studio/monitor_left_painted.webp');
+    const monitorRightPainted = useLoader(TextureLoader, '/textures/studio/monitor_right_painted.webp');
 
-    // Load TV textures (YouTube) - shell
+    // Load TV textures (YouTube) - shell + painted
     const tvBack = useLoader(TextureLoader, '/textures/studio/tv_back.webp');
     const tvTop = useLoader(TextureLoader, '/textures/studio/tv_top.webp');
     const tvBottom = useLoader(TextureLoader, '/textures/studio/tv_bottom.webp');
     const tvSide = useLoader(TextureLoader, '/textures/studio/tv_side.webp');
+    const tvBackPainted = useLoader(TextureLoader, '/textures/studio/tv_back_painted.webp');
+    const tvTopPainted = useLoader(TextureLoader, '/textures/studio/tv_top_painted.webp');
+    const tvBottomPainted = useLoader(TextureLoader, '/textures/studio/tv_bottom_painted.webp');
+    const tvSidePainted = useLoader(TextureLoader, '/textures/studio/tv_side_painted.webp');
 
-    // Load Phone textures (TikTok) - shell
+    // Load Phone textures (TikTok) - shell + painted
     const phoneBack = useLoader(TextureLoader, '/textures/studio/phone_back.webp');
     const phoneSide = useLoader(TextureLoader, '/textures/studio/phone_side.webp');
+    const phoneBackPainted = useLoader(TextureLoader, '/textures/studio/phone_back_painted.webp');
+    const phoneSidePainted = useLoader(TextureLoader, '/textures/studio/phone_side_painted.webp');
 
-
-    // Create materials array for box faces: [+X right, -X left, +Y top, -Y bottom, +Z front, -Z back]
-    const materials = useMemo(() => {
+    // Build texture config for current device type
+    // Each entry: { sketch, painted } — if painted is null, that face won't have reveal
+    const faceConfig = useMemo(() => {
         if (isBlogMonitor) {
             return [
-                new THREE.MeshStandardMaterial({ map: monitorRight, roughness: 0.5 }), // +X right
-                new THREE.MeshStandardMaterial({ map: monitorLeft, roughness: 0.5 }),  // -X left
-                new THREE.MeshStandardMaterial({ map: monitorTop, roughness: 0.5 }),   // +Y top
-                new THREE.MeshStandardMaterial({ map: monitorBottom, roughness: 0.5 }),// -Y bottom
-                new THREE.MeshStandardMaterial({ map: frontTex, roughness: 0.5 }), // +Z front (DYNAMIC)
-                new THREE.MeshStandardMaterial({ map: monitorBack, roughness: 0.5 }),  // -Z back
+                { sketch: monitorRight, painted: monitorRightPainted },    // +X
+                { sketch: monitorLeft, painted: monitorLeftPainted },      // -X
+                { sketch: monitorTop, painted: null },                     // +Y (no painted)
+                { sketch: monitorBottom, painted: monitorBottomPainted },  // -Y
+                { sketch: frontTex, painted: frontPaintedTex },            // +Z front
+                { sketch: monitorBack, painted: null },                    // -Z (no painted)
             ];
         } else if (isTvMonitor) {
             return [
-                new THREE.MeshStandardMaterial({ map: tvSide, roughness: 0.5 }),   // +X right
-                new THREE.MeshStandardMaterial({ map: tvSide, roughness: 0.5 }),   // -X left
-                new THREE.MeshStandardMaterial({ map: tvTop, roughness: 0.5 }),    // +Y top
-                new THREE.MeshStandardMaterial({ map: tvBottom, roughness: 0.5 }), // -Y bottom
-                new THREE.MeshStandardMaterial({ map: frontTex, roughness: 0.5 }),  // +Z front (DYNAMIC)
-                new THREE.MeshStandardMaterial({ map: tvBack, roughness: 0.5 }),   // -Z back
+                { sketch: tvSide, painted: tvSidePainted },       // +X
+                { sketch: tvSide, painted: tvSidePainted },       // -X
+                { sketch: tvTop, painted: tvTopPainted },          // +Y
+                { sketch: tvBottom, painted: tvBottomPainted },    // -Y
+                { sketch: frontTex, painted: frontPaintedTex },    // +Z front
+                { sketch: tvBack, painted: tvBackPainted },        // -Z
             ];
         } else if (isPhoneMonitor) {
             return [
-                new THREE.MeshStandardMaterial({ map: phoneSide, roughness: 0.5 }), // +X right
-                new THREE.MeshStandardMaterial({ map: phoneSide, roughness: 0.5 }), // -X left
-                new THREE.MeshStandardMaterial({ map: phoneSide, roughness: 0.5 }), // +Y top
-                new THREE.MeshStandardMaterial({ map: phoneSide, roughness: 0.5 }), // -Y bottom
-                new THREE.MeshStandardMaterial({ map: frontTex, roughness: 0.5 }),// +Z front (DYNAMIC)
-                new THREE.MeshStandardMaterial({ map: phoneBack, roughness: 0.5 }), // -Z back
+                { sketch: phoneSide, painted: phoneSidePainted },  // +X
+                { sketch: phoneSide, painted: phoneSidePainted },  // -X
+                { sketch: phoneSide, painted: phoneSidePainted },  // +Y
+                { sketch: phoneSide, painted: phoneSidePainted },  // -Y
+                { sketch: frontTex, painted: frontPaintedTex },    // +Z front
+                { sketch: phoneBack, painted: phoneBackPainted },  // -Z
             ];
         }
         return null;
     }, [
         isBlogMonitor, isTvMonitor, isPhoneMonitor,
-        frontTex, monitorBack, monitorTop, monitorBottom, monitorLeft, monitorRight,
+        frontTex, frontPaintedTex,
+        monitorBack, monitorTop, monitorBottom, monitorLeft, monitorRight,
+        monitorBottomPainted, monitorLeftPainted, monitorRightPainted,
         tvBack, tvTop, tvBottom, tvSide,
-        phoneBack, phoneSide
+        tvBackPainted, tvTopPainted, tvBottomPainted, tvSidePainted,
+        phoneBack, phoneSide, phoneBackPainted, phoneSidePainted
     ]);
+
+    // Painted materials for inner box (standard materials showing painted textures)
+    const paintedMaterials = useMemo(() => {
+        if (!faceConfig) return null;
+        return faceConfig.map(f =>
+            new THREE.MeshStandardMaterial({
+                map: f.painted || f.sketch, // Use sketch as fallback if no painted version
+                roughness: 0.5
+            })
+        );
+    }, [faceConfig]);
+
+    // Sketch materials for outer box (standard materials, used for faces WITHOUT reveal)
+    const sketchMaterials = useMemo(() => {
+        if (!faceConfig) return null;
+        return faceConfig.map(f =>
+            f.painted ? null : new THREE.MeshStandardMaterial({ map: f.sketch, roughness: 0.5 })
+        );
+    }, [faceConfig]);
+
+    // Animate paint reveal on hover OR when selected (clicked/zoomed in)
+    // Paint stays while viewing, un-paints when overlay closes (isSelected → false)
+    const shouldPaint = isHovered || isSelected;
+
+    useEffect(() => {
+        if (!faceConfig) return;
+
+        const targetProgress = shouldPaint ? 1.0 : 0.0;
+        const duration = shouldPaint ? 0.8 : 0.5;
+
+        // Animate each revealMaterial face
+        matRefs.forEach((ref) => {
+            if (ref.current) {
+                gsap.to(ref.current, {
+                    uProgress: targetProgress,
+                    duration,
+                    ease: 'power2.out',
+                    overwrite: true
+                });
+            }
+        });
+
+        // Show/hide painted box
+        if (shouldPaint) {
+            if (hideDelayRef.current) hideDelayRef.current.kill();
+            if (paintedBoxRef.current) paintedBoxRef.current.visible = true;
+        } else {
+            // Hide painted box after reverse animation completes
+            hideDelayRef.current = gsap.delayedCall(duration + 0.05, () => {
+                if (paintedBoxRef.current) paintedBoxRef.current.visible = false;
+            });
+        }
+    }, [shouldPaint]);
+
+    if (!faceConfig) {
+        // Fallback for unknown platform
+        return (
+            <group ref={meshRef} position={[item.x, item.baseY, item.z]} rotation={[0, item.rot, 0]}>
+                <mesh>
+                    <boxGeometry args={[item.width, item.height, item.depth]} />
+                    <meshStandardMaterial color={item.platformConfig.color} roughness={0.4} metalness={0.1} />
+                </mesh>
+            </group>
+        );
+    }
 
     return (
         <group
@@ -591,22 +688,41 @@ const MonitorBlock = ({ item, meshRef, isHovered, isSelected, onHover, onClick, 
                 onClick();
             }}
         >
-            {/* Textured mesh for Blog/TV/Phone, simple colored box for others (fallback) */}
-            {materials ? (
-                <mesh>
-                    <boxGeometry args={[item.width, item.height, item.depth]} />
-                    {materials.map((mat, i) => (
-                        <primitive key={i} attach={`material-${i}`} object={mat} />
-                    ))}
-                </mesh>
-            ) : (
-                <mesh>
-                    <boxGeometry args={[item.width, item.height, item.depth]} />
-                    <meshStandardMaterial color={item.platformConfig.color} roughness={0.4} metalness={0.1} />
-                </mesh>
-            )}
+            {/* PAINTED BOX (behind) — hidden until hover */}
+            <mesh ref={paintedBoxRef} visible={false}>
+                <boxGeometry args={[item.width, item.height, item.depth]} />
+                {paintedMaterials.map((mat, i) => (
+                    <primitive key={`p${i}`} attach={`material-${i}`} object={mat} />
+                ))}
+            </mesh>
+
+            {/* SKETCH BOX (front) — revealMaterial faces get discarded on hover */}
+            <mesh>
+                <boxGeometry args={[item.width, item.height, item.depth]} />
+                {faceConfig.map((face, i) => {
+                    if (face.painted) {
+                        // This face has a painted version → use revealMaterial for brush-stroke discard
+                        return (
+                            <revealMaterial
+                                key={`s${i}`}
+                                ref={matRefs[i]}
+                                attach={`material-${i}`}
+                                map={face.sketch}
+                                roughness={0.5}
+                                uProgress={0.0}
+                            />
+                        );
+                    } else {
+                        // No painted version → standard material (no reveal)
+                        return (
+                            <primitive key={`s${i}`} attach={`material-${i}`} object={sketchMaterials[i]} />
+                        );
+                    }
+                })}
+            </mesh>
         </group>
     );
 };
 
 export default StudioRoom;
+
