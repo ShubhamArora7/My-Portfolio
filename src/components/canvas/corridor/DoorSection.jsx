@@ -864,16 +864,9 @@ const DoorSection = ({
     // Handle position on door (based on texture - handle is on the right side for left doors)
     const handlePivotX = side === 'left' ? doorWidth * 0.25 : -doorWidth * 0.25;
 
-    // Sign texture mapping
-    const SIGN_TEXTURES = {
-        'THE GALLERY': '/textures/corridor/thegallerysign.webp',
-        'THE STUDIO': '/textures/corridor/thestudiosign.webp',
-        'THE ABOUT': '/textures/corridor/aboutsign.webp',
-        "LET'S CONNECT": '/textures/corridor/contactsign.webp',
-    };
-
-    const signTextureUrl = SIGN_TEXTURES[label];
-    const signTexture = useTexture(signTextureUrl || SIGN_TEXTURES['THE GALLERY']); // Fallback
+    // Sign texture mapping - now uses a single empty sign texture
+    const signTextureUrl = '/textures/corridor/pustatabliczka.png';
+    const signTexture = useTexture(signTextureUrl);
 
     return (
         // Outer group at pivot position (outer edge of wall)
@@ -999,6 +992,80 @@ const DoorSection = ({
                                 roughness={0.8}
                             />
                         </mesh>
+
+                        {/* === DYNAMIC TEXT FOR SIGNS === */}
+                        {label === 'THE GALLERY' && (
+                            <group position={[0, 0, 0.01]}>
+                                <Text
+                                    font="/fonts/CabinSketch-Bold.ttf"
+                                    fontSize={0.25}
+                                    color="#111111"
+                                    anchorX="center"
+                                    anchorY="bottom"
+                                    position={[0, -0.02, 0]}
+                                >
+                                    THE
+                                </Text>
+                                <Text
+                                    font="/fonts/CabinSketch-Bold.ttf"
+                                    fontSize={0.25}
+                                    color="#111111"
+                                    anchorX="center"
+                                    anchorY="top"
+                                    position={[0, +0.02, 0]}
+                                >
+                                    GALLERY
+                                </Text>
+                            </group>
+                        )}
+                        {label === 'THE STUDIO' && (
+                            <group position={[0, 0, 0.01]}>
+                                <Text
+                                    font="/fonts/CabinSketch-Bold.ttf"
+                                    fontSize={0.25}
+                                    color="#111111"
+                                    anchorX="center"
+                                    anchorY="bottom"
+                                    position={[0, -0.02, 0]}
+                                >
+                                    THE
+                                </Text>
+                                <Text
+                                    font="/fonts/CabinSketch-Bold.ttf"
+                                    fontSize={0.25}
+                                    color="#111111"
+                                    anchorX="center"
+                                    anchorY="top"
+                                    position={[0, +0.03, 0]}
+                                >
+                                    STUDIO
+                                </Text>
+                            </group>
+                        )}
+                        {label === 'THE ABOUT' && (
+                            <Text
+                                font="/fonts/CabinSketch-Bold.ttf"
+                                fontSize={0.30}
+                                color="#111111"
+                                anchorX="center"
+                                anchorY="middle"
+                                position={[0, 0, 0.01]}
+                            >
+                                ABOUT
+                            </Text>
+                        )}
+                        {label === "LET'S CONNECT" && (
+                            <Text
+                                font="/fonts/CabinSketch-Bold.ttf"
+                                fontSize={0.25}
+                                color="#111111"
+                                anchorX="center"
+                                anchorY="middle"
+                                position={[0, 0, 0.01]}
+                            >
+                                CONTACT
+                            </Text>
+                        )}
                     </group>
 
                     {/* === DOOR FRAME (textured) === */}

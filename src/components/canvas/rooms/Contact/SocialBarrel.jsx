@@ -1,14 +1,24 @@
 import { useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { useTexture } from '@react-three/drei';
+import { useTexture, Text } from '@react-three/drei';
 import * as THREE from 'three';
+import gsap from 'gsap';
+import '../../shaders/RevealMaterial';
 
-const SocialBarrel = ({ position, rotation = [0, 0, 0], texturePath, onClick, scale = [2.3, 2.3] }) => {
+const SocialBarrel = ({ position, rotation = [0, 0, 0], texturePath, label, onClick, scale = [2.3, 2.3] }) => {
     const meshRef = useRef();
+    const materialRef = useRef();
+    const paintedRef = useRef();
+    const hideDelayRef = useRef();
+
     // Load texture based on prop. 
     // Note: If you change the texture on the fly, this might suspend. 
     // Ideally textures are preloaded or consistent.
     const texture = useTexture(texturePath);
+    // Determine the painted texture path from the base texture path
+    const paintedTexturePath = texturePath.replace('.png', '_painted.png').replace('.webp', '_painted.webp');
+    const texturePainted = useTexture(paintedTexturePath);
+
     const [hovered, setHovered] = useState(false);
 
     useFrame((state) => {
@@ -33,8 +43,43 @@ const SocialBarrel = ({ position, rotation = [0, 0, 0], texturePath, onClick, sc
         }
     });
 
+    const handlePointerOver = () => {
+        document.body.style.cursor = 'pointer';
+        setHovered(true);
+
+        if (materialRef.current) {
+            gsap.to(materialRef.current, {
+                uProgress: 1.0,
+                duration: 0.8,
+                ease: 'power2.out',
+                overwrite: true
+            });
+        }
+
+        if (hideDelayRef.current) hideDelayRef.current.kill();
+        if (paintedRef.current) paintedRef.current.visible = true;
+    };
+
+    const handlePointerOut = () => {
+        document.body.style.cursor = 'auto';
+        setHovered(false);
+
+        if (materialRef.current) {
+            gsap.to(materialRef.current, {
+                uProgress: 0.0,
+                duration: 0.5,
+                ease: 'power2.out',
+                overwrite: true
+            });
+        }
+
+        hideDelayRef.current = gsap.delayedCall(0.55, () => {
+            if (paintedRef.current) paintedRef.current.visible = false;
+        });
+    };
+
     return (
-        <mesh
+        <group
             ref={meshRef}
             position={position}
             rotation={rotation}
@@ -42,17 +87,47 @@ const SocialBarrel = ({ position, rotation = [0, 0, 0], texturePath, onClick, sc
                 e.stopPropagation();
                 onClick && onClick();
             }}
-            onPointerOver={() => { document.body.style.cursor = 'pointer'; setHovered(true); }}
-            onPointerOut={() => { document.body.style.cursor = 'auto'; setHovered(false); }}
+            onPointerOver={handlePointerOver}
+            onPointerOut={handlePointerOut}
         >
-            <planeGeometry args={scale} />
-            <meshBasicMaterial
-                map={texture}
-                transparent={true}
-                alphaTest={0.5}
-                side={THREE.DoubleSide}
-            />
-        </mesh>
+            {/* Painted Layer (Behind) */}
+            <mesh ref={paintedRef} position={[0, 0, -0.001]} visible={false}>
+                <planeGeometry args={scale} />
+                <meshBasicMaterial
+                    map={texturePainted}
+                    transparent={true}
+                    alphaTest={0.5}
+                    side={THREE.DoubleSide}
+                />
+            </mesh>
+
+            {/* Sketch overlay (Front) - brush-stroke discard reveals painted beneath */}
+            <mesh position={[0, 0, 0]}>
+                <planeGeometry args={scale} />
+                <revealMaterial
+                    ref={materialRef}
+                    map={texture}
+                    transparent={true}
+                    alphaTest={0.1}
+                    uProgress={0.0}
+                />
+            </mesh>
+
+            {label && (
+                <Text
+                    position={[0, scale[1] * 0.26, 0.05]} // Adjust Y position to hit the wooden board on top of the barrel
+                    rotation={[0, 0, 0.03]} // Slight tilt to match a drawn wooden board
+                    fontSize={scale[0] * 0.14}
+                    font="/fonts/CabinSketch-Bold.ttf"
+                    color="#111111"
+                    anchorX="center"
+                    anchorY="middle"
+                >
+                    {label}
+                </Text>
+            )
+            }
+        </group >
     );
 };
 

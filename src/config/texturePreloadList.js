@@ -61,10 +61,7 @@ export const CORRIDOR_TEXTURES = [
     '/textures/corridor/doors/drzwiabout.webp',
     '/textures/corridor/doors/drzwikontakt.webp',
     // Signs
-    '/textures/corridor/thegallerysign.webp',
-    '/textures/corridor/thestudiosign.webp',
-    '/textures/corridor/aboutsign.webp',
-    '/textures/corridor/contactsign.webp',
+    '/textures/corridor/pustatabliczka.png',
     // Decorations
     '/textures/corridor/decorations/while_true_loop.webp',
     '/textures/corridor/decorations/coffee_debug.webp',

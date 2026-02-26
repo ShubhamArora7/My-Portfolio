@@ -156,9 +156,9 @@ const HeroText = ({ position = [0, 0.3, 0] }) => {
                     key={word.text}
                     ref={(el) => (taglineRefs.current[i] = el)}
                     position={[word.baseX, -0.55, 0.3]}
-                    fontSize={word.text === '<' || word.text === '/>' ? 0.18 : 0.16}
-                    font={word.text === '<' || word.text === '/>' ? undefined : CABIN_SKETCH_URL}
-                    color={word.text === '<' || word.text === '/>' ? '#39FF14' : '#555555'}
+                    fontSize={0.16}
+                    font={CABIN_SKETCH_URL}
+                    color="#555555"
                     anchorX="center"
                     anchorY="middle"
                     letterSpacing={0.04}

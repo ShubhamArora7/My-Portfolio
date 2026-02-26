@@ -177,7 +177,7 @@ const CorridorSegment = ({
                 <mesh key={i} position={[dec.x, dec.y, zOffset + dec.relZ]}>
                     <octahedronGeometry args={[0.05, 0]} />
                     <meshBasicMaterial
-                        color="#39FF14"
+                        color="#111111"
                         transparent
                         opacity={0.4}
                         wireframe

@@ -300,7 +300,7 @@ const ThoughtBubble = ({ position }) => {
             {/* Content inside bubble - code icon */}
             <mesh ref={contentRef} position={[0, 0, 0.01]}>
                 <planeGeometry args={[0.05, 0.06]} />
-                <meshBasicMaterial color="#39FF14" transparent opacity={0.9} />
+                <meshBasicMaterial color="#111111" transparent opacity={0.9} />
             </mesh>
         </group>
     );
