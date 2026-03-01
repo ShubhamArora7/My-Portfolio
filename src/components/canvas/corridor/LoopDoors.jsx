@@ -16,9 +16,8 @@ const LoopDoors = ({
     onLoopTriggered
 }) => {
     const leftDoorRef = useRef();
-    const rightDoorRef = useRef();
-    const [isOpen, setIsOpen] = useState(false);
-    const [hasTriggered, setHasTriggered] = useState(false);
+    const isOpenRef = useRef(false);
+    const hasTriggeredRef = useRef(false);
     const { camera } = useThree();
 
     const doorWidth = 1.2;
@@ -33,8 +32,8 @@ const LoopDoors = ({
         const distance = camera.position.z - position[2];
 
         // Start opening doors when approaching
-        if (distance < triggerDistance && distance > loopDistance && !isOpen) {
-            setIsOpen(true);
+        if (distance < triggerDistance && distance > loopDistance && !isOpenRef.current) {
+            isOpenRef.current = true;
 
             // Animate doors opening outward
             gsap.to(leftDoorRef.current.rotation, {
@@ -50,14 +49,14 @@ const LoopDoors = ({
         }
 
         // Trigger loop when very close
-        if (distance < loopDistance && !hasTriggered && isOpen) {
-            setHasTriggered(true);
+        if (distance < loopDistance && !hasTriggeredRef.current && isOpenRef.current) {
+            hasTriggeredRef.current = true;
             onLoopTriggered?.();
 
             // Reset after loop
             setTimeout(() => {
-                setHasTriggered(false);
-                setIsOpen(false);
+                hasTriggeredRef.current = false;
+                isOpenRef.current = false;
 
                 // Close doors instantly (they'll be at the "end" again after loop)
                 if (leftDoorRef.current && rightDoorRef.current) {

@@ -1,7 +1,44 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 
 import CorridorSegment, { SEGMENT_LENGTH } from './CorridorSegment';
+
+/**
+ * Wrapper to toggle segment visibility based on camera position.
+ * Massively reduces Draw Calls by hiding segments fully behind the camera.
+ */
+const SegmentVisibilityWrapper = ({ children, segmentIndex }) => {
+    const groupRef = useRef();
+    const { camera } = useThree();
+
+    // Z bounds for this segment
+    // Segment 0: Z=10 to Z=-70
+    // Segment 1: Z=-70 to Z=-150
+    const startZ = 10 - (segmentIndex * SEGMENT_LENGTH);
+    const endZ = startZ - SEGMENT_LENGTH;
+
+    useFrame(() => {
+        if (!groupRef.current) return;
+        // Camera looks towards -Z. 
+        // If camera is significantly "in front" of the segment (e.g., camera Z is much less than endZ), hide it.
+        // We reduce the buffer from 20 to 5. Once we pass the segment by 5 units, it disappears, freeing CPU.
+        const isBehindCamera = camera.position.z < endZ - 5;
+        // If camera is significantly "behind" the segment (e.g., camera Z is much greater than startZ + buffer), hide it.
+        const isFarAhead = camera.position.z > startZ + 30;
+
+        const isVisible = !(isBehindCamera || isFarAhead);
+
+        if (groupRef.current.visible !== isVisible) {
+            groupRef.current.visible = isVisible;
+        }
+    });
+
+    return (
+        <group ref={groupRef}>
+            {children}
+        </group>
+    );
+};
 
 /**
  * InfiniteCorridorManager Component
@@ -29,7 +66,7 @@ const InfiniteCorridorManager = ({
     useFrame(() => {
         const currentSegment = getSegmentFromZ(camera.position.z);
 
-        // Always render segments around camera (prev, current, next)
+        // Render previous, current, and next segment
         const shouldBeActive = [
             currentSegment - 1,
             currentSegment,
@@ -48,14 +85,16 @@ const InfiniteCorridorManager = ({
     return (
         <group>
             {activeSegments.map((segmentIndex) => (
-                <CorridorSegment
-                    key={`segment-${segmentIndex}`}
-                    segmentIndex={segmentIndex}
-                    onDoorEnter={onDoorEnter}
-                    hideSegmentDoors={hideDoorsForSegments.includes(segmentIndex)}
-                    zClip={clipSegmentNeg1 && segmentIndex === -1 ? 22 : 100000}
-                    setCameraOverride={setCameraOverride}
-                />
+                <SegmentVisibilityWrapper key={`seg-wrap-${segmentIndex}`} segmentIndex={segmentIndex}>
+                    <CorridorSegment
+                        key={`segment-${segmentIndex}`}
+                        segmentIndex={segmentIndex}
+                        onDoorEnter={onDoorEnter}
+                        hideSegmentDoors={hideDoorsForSegments.includes(segmentIndex)}
+                        zClip={clipSegmentNeg1 && segmentIndex === -1 ? 22 : 100000}
+                        setCameraOverride={setCameraOverride}
+                    />
+                </SegmentVisibilityWrapper>
             ))}
         </group>
     );

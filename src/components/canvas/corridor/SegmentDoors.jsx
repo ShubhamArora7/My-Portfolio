@@ -19,7 +19,7 @@ const SegmentDoors = ({
     const rightDoorRef = useRef();
     const leftHandleRef = useRef();
     const rightHandleRef = useRef();
-    const [isOpen, setIsOpen] = useState(false);
+    const isOpenRef = useRef(false);
     const { camera } = useThree();
 
     // Load textures
@@ -79,8 +79,8 @@ const SegmentDoors = ({
         const distanceZ = Math.abs(camera.position.z - position[2]);
         const distanceX = Math.abs(camera.position.x - position[0]);
 
-        if (distanceZ < openDistance && distanceX < 0.8 && !isOpen) {
-            setIsOpen(true);
+        if (distanceZ < openDistance && distanceX < 0.8 && !isOpenRef.current) {
+            isOpenRef.current = true;
 
             // Animate Handles
             if (leftHandleRef.current) {
@@ -96,8 +96,8 @@ const SegmentDoors = ({
         }
 
         // Close if user moves away in Z, OR if they move away in X (like flying sideways into a room)
-        if ((distanceZ > closeDistance || distanceX > 1.5) && isOpen) {
-            setIsOpen(false);
+        if ((distanceZ > closeDistance || distanceX > 1.5) && isOpenRef.current) {
+            isOpenRef.current = false;
 
             // Close Doors
             gsap.to(leftDoorRef.current.rotation, { y: 0, duration: 0.7, ease: 'power2.in' });

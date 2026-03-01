@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import gsap from 'gsap';
 import { CONTENT_DATA, PLATFORM_CONFIG, getLatestContent } from './contentData';
 import { useScene } from '../../../../context/SceneContext';
+import { useAchievements } from '../../../../context/AchievementsContext';
 import { TextureLoader } from 'three';
 import FloatingCodeParticles from './FloatingCodeParticles';
 import '../../shaders/RevealMaterial';
@@ -52,7 +53,7 @@ const StudioRoom = ({ showRoom, onReady }) => {
     // State
     const isDraggingRef = useRef(false);
     const lastXRef = useRef(0);
-    const [dragDistance, setDragDistance] = useState(0); // Keep this state as it might be used for rendering or effects, currently used in logic but safe to keep or refactor. Actually used in dependency arrays.
+    const dragDistance = useRef(0); // Changed to ref to prevent 100x/sec re-renders on drag
 
     // Physics
     const rotationVelocity = useRef(0);
@@ -69,11 +70,13 @@ const StudioRoom = ({ showRoom, onReady }) => {
 
     // Content State
     const [selectedMonitor, setSelectedMonitor] = useState(null);
-    const [hoveredId, setHoveredId] = useState(null);
     const [isAnimating, setIsAnimating] = useState(false);
 
     // Global Scene Context for Overlay
     const { openOverlay, overlayContent } = useScene();
+
+    // Achievements Context
+    const { showTutorial, unlockAchievement } = useAchievements();
 
     const latestContent = getLatestContent();
 
@@ -101,6 +104,7 @@ const StudioRoom = ({ showRoom, onReady }) => {
         if (frameCount.current >= FRAMES_TO_WAIT) {
             hasSignaledReady.current = true;
             onReady?.();
+            setTimeout(() => showTutorial('studio_interact'), 2000);
         }
     });
 
@@ -195,7 +199,7 @@ const StudioRoom = ({ showRoom, onReady }) => {
         isDraggingRef.current = true;
         lastXRef.current = e.clientX;
         lastYRef.current = e.clientY; // Store init Y
-        setDragDistance(0);
+        dragDistance.current = 0;
         rotationVelocity.current = 0;
 
         // Disable auto-rotate immediately
@@ -221,7 +225,7 @@ const StudioRoom = ({ showRoom, onReady }) => {
         lastXRef.current = clientX;
         lastYRef.current = clientY;
 
-        setDragDistance(prev => prev + Math.abs(deltaX) + Math.abs(deltaY));
+        dragDistance.current += Math.abs(deltaX) + Math.abs(deltaY);
 
         // HORIZONTAL -> Rotation
         if (Math.abs(deltaX) > 1) {
@@ -233,7 +237,8 @@ const StudioRoom = ({ showRoom, onReady }) => {
         // VERTICAL -> Fall Speed
         fallSpeed.current += deltaY * SWIPE_SENSITIVITY;
 
-    }, [isAnimating]);
+        unlockAchievement('studio_interact');
+    }, [isAnimating, unlockAchievement]);
 
     // Wheel Listener for Desktop
     useEffect(() => {
@@ -242,11 +247,12 @@ const StudioRoom = ({ showRoom, onReady }) => {
             // Scroll DOWN -> Monitors go DOWN (Speed +).
             // Scroll UP -> Monitors go UP (Speed -).
             fallSpeed.current += e.deltaY * SCROLL_SENSITIVITY;
+            unlockAchievement('studio_interact');
         };
 
         window.addEventListener('wheel', handleWheel);
         return () => window.removeEventListener('wheel', handleWheel);
-    }, []);
+    }, [unlockAchievement]);
 
     // Global Event Listeners for seamless drag
     useEffect(() => {
@@ -267,12 +273,13 @@ const StudioRoom = ({ showRoom, onReady }) => {
     // STEP 1 ONLY: Rotate tower to center the clicked monitor
     const handleMonitorClick = useCallback((item) => {
         // Prevent click if we were dragging
-        if (dragDistance > 5 || isAnimating || !towerRef.current) return;
-        if (dragDistance > 5 || isAnimating || !towerRef.current) return;
+        if (dragDistance.current > 5 || isAnimating || !towerRef.current) return;
 
         setIsAnimating(true);
         setSelectedMonitor(item);
         rotationVelocity.current = 0;
+
+        unlockAchievement('studio_interact');
 
         // Monitor's facing rotation (item.rot = -angle + PI/2)
         // Monitor's screen faces local +Z, rotated by item.rot
@@ -370,7 +377,7 @@ const StudioRoom = ({ showRoom, onReady }) => {
             }
         });
 
-    }, [dragDistance, isAnimating, camera, responsiveParams, openOverlay]);
+    }, [isAnimating, camera, responsiveParams, openOverlay]);
 
     // Trigger camera return ONLY when overlay is explicitly closed
     // We use a ref to track if overlay was previously open to avoid initial race conditions
@@ -476,9 +483,7 @@ const StudioRoom = ({ showRoom, onReady }) => {
                         item={item}
                         index={index}
                         meshRef={(el) => { monitorRefs.current[index] = el; }}
-                        isHovered={hoveredId === item.id}
                         isSelected={selectedMonitor?.id === item.id}
-                        onHover={(hovered) => setHoveredId(hovered ? item.id : null)}
                         onClick={() => handleMonitorClick(item)}
                         disabled={isAnimating}
                     />
@@ -498,7 +503,7 @@ const StudioRoom = ({ showRoom, onReady }) => {
 // MONITOR BLOCK COMPONENT - with Paint Reveal on Hover
 // Uses proven two-box approach: painted box behind + sketch box with revealMaterial in front
 // ===========================================
-const MonitorBlock = ({ item, meshRef, isHovered, isSelected, onHover, onClick, disabled }) => {
+const MonitorBlock = ({ item, meshRef, isSelected, onClick, disabled }) => {
     // Position.y is updated directly by parent's useFrame via meshRef
     const paintedBoxRef = useRef();
     const hideDelayRef = useRef();
@@ -621,13 +626,13 @@ const MonitorBlock = ({ item, meshRef, isHovered, isSelected, onHover, onClick, 
         );
     }, [faceConfig]);
 
-    // Animate paint reveal on hover OR when selected (clicked/zoomed in)
-    // Paint stays while viewing, un-paints when overlay closes (isSelected → false)
-    const shouldPaint = isHovered || isSelected;
+    // --- HOVER STATE MANAGEMENT (NO REACT RE-RENDERS!) ---
+    const isHoveredRef = useRef(false);
 
-    useEffect(() => {
+    const updatePaintState = useCallback(() => {
         if (!faceConfig) return;
 
+        const shouldPaint = isHoveredRef.current || isSelected;
         const targetProgress = shouldPaint ? 1.0 : 0.0;
         const duration = shouldPaint ? 0.8 : 0.5;
 
@@ -649,11 +654,18 @@ const MonitorBlock = ({ item, meshRef, isHovered, isSelected, onHover, onClick, 
             if (paintedBoxRef.current) paintedBoxRef.current.visible = true;
         } else {
             // Hide painted box after reverse animation completes
-            hideDelayRef.current = gsap.delayedCall(duration + 0.05, () => {
+            // On initial mount (when hideDelay is empty), hide it very quickly (0.05s) just to allow 1-3 frames for compilation
+            const delay = hideDelayRef.current === undefined ? 0.05 : (duration + 0.05);
+            hideDelayRef.current = gsap.delayedCall(delay, () => {
                 if (paintedBoxRef.current) paintedBoxRef.current.visible = false;
             });
         }
-    }, [shouldPaint]);
+    }, [faceConfig, isSelected]);
+
+    // React to purely external changes (e.g., overlay closes and isSelected becomes false)
+    useEffect(() => {
+        updatePaintState();
+    }, [isSelected, updatePaintState]);
 
     if (!faceConfig) {
         // Fallback for unknown platform
@@ -675,11 +687,13 @@ const MonitorBlock = ({ item, meshRef, isHovered, isSelected, onHover, onClick, 
             onPointerOver={(e) => {
                 if (disabled) return;
                 e.stopPropagation();
-                onHover(true);
+                isHoveredRef.current = true;
+                updatePaintState();
                 document.body.style.cursor = 'pointer';
             }}
             onPointerOut={() => {
-                onHover(false);
+                isHoveredRef.current = false;
+                updatePaintState();
                 document.body.style.cursor = 'auto';
             }}
             onPointerUp={(e) => {
@@ -688,8 +702,8 @@ const MonitorBlock = ({ item, meshRef, isHovered, isSelected, onHover, onClick, 
                 onClick();
             }}
         >
-            {/* PAINTED BOX (behind) — hidden until hover */}
-            <mesh ref={paintedBoxRef} visible={false}>
+            {/* PAINTED BOX (behind) — initially visible to force shader compilation during loading phase */}
+            <mesh ref={paintedBoxRef} visible={true}>
                 <boxGeometry args={[item.width, item.height, item.depth]} />
                 {paintedMaterials.map((mat, i) => (
                     <primitive key={`p${i}`} attach={`material-${i}`} object={mat} />

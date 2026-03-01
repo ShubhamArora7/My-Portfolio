@@ -32,7 +32,7 @@ const CLOUD_TEXTURES = [
     '/textures/clouds/f6e358bc-d27c-41dd-95f4-6787a835c41e.webp',
 ];
 
-const SkyChunk = ({ chunkIndex = 0, seed = 0, scrollProgress = 0 }) => {
+const SkyChunk = ({ chunkIndex = 0, seed = 0, scrollProgressRef }) => {
     const zOffset = -(chunkIndex * CHUNK_LENGTH) - 15;
 
     const clouds = useMemo(() => {
@@ -75,7 +75,7 @@ const SkyChunk = ({ chunkIndex = 0, seed = 0, scrollProgress = 0 }) => {
                     driftAmount={cloud.driftAmount}
                     bobAmount={cloud.bobAmount}
                     timeOffset={cloud.timeOffset}
-                    scrollProgress={scrollProgress}
+                    scrollProgressRef={scrollProgressRef}
                 />
             ))}
         </group>
@@ -92,7 +92,7 @@ const Cloud = ({
     driftAmount = 0.8,
     bobAmount = 0.15,
     timeOffset = 0,
-    scrollProgress = 0
+    scrollProgressRef
 }) => {
     const meshRef = useRef();
     const materialRef = useRef();
@@ -117,6 +117,7 @@ const Cloud = ({
         // === TWARDA LINIA CLIP (RĘCZNE OBLICZENIE WORLD Z) ===
         // worldZ = pokój(-25) + scrollProgress + lokalna pozycja chmury
         // NIE używamy getWorldPosition() bo useFrame dzieci odpala się PRZED rodzicem!
+        const scrollProgress = scrollProgressRef?.current || 0;
         const cloudLocalZ = basePosition.current[2];
         const worldZ = ROOM_Z + scrollProgress + cloudLocalZ;
 

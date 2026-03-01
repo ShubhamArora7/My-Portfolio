@@ -1,6 +1,7 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useAchievements } from '../context/AchievementsContext';
 
 /**
  * useCorridorCamera Hook
@@ -23,6 +24,7 @@ const useCorridorCamera = ({
     const parallax = useRef({ x: 0, y: 0 });
     const targetParallax = useRef({ x: 0, y: 0 });
     const isLooping = useRef(false);
+    const { unlockAchievement } = useAchievements();
 
     // Handle wheel scroll
     const handleWheel = useCallback((e) => {
@@ -36,7 +38,9 @@ const useCorridorCamera = ({
             endZ,
             startZ
         );
-    }, [scrollSpeed, startZ, endZ]);
+
+        unlockAchievement('corridor_explore');
+    }, [scrollSpeed, startZ, endZ, unlockAchievement]);
 
     // Handle mouse parallax
     const handleMouseMove = useCallback((e) => {

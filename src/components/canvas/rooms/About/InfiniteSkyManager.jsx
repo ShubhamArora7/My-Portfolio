@@ -137,7 +137,7 @@ const STORY_CYCLE_LENGTH = 160;
 // -27 = 2 metry za drzwiami (w głąb pokoju) - musi matchować CORRIDOR_CLIP_Z w SkyChunk
 const MILESTONE_CORRIDOR_CLIP_Z = -8.0;
 
-const InfiniteSkyManager = ({ scrollProgress = 0 }) => {
+const InfiniteSkyManager = ({ scrollProgressRef }) => {
     // PRE-CALCULATED FOR scrolProgress = 0
     // currentChunk = floor(0/40) = 0 -> [-1, 0, 1, 2]
     const [activeChunks, setActiveChunks] = useState([-1, 0, 1, 2]);
@@ -158,6 +158,8 @@ const InfiniteSkyManager = ({ scrollProgress = 0 }) => {
     // Update chunks based on world position
     useFrame(() => {
         if (!worldRef.current) return;
+
+        const scrollProgress = scrollProgressRef?.current || 0;
 
         // Move world directly
         worldRef.current.position.z = scrollProgress;
@@ -202,7 +204,7 @@ const InfiniteSkyManager = ({ scrollProgress = 0 }) => {
                     key={`sky-chunk-${chunkIndex}`}
                     chunkIndex={chunkIndex}
                     seed={42}
-                    scrollProgress={scrollProgress}
+                    scrollProgressRef={scrollProgressRef}
                 />
             ))}
 
@@ -212,26 +214,26 @@ const InfiniteSkyManager = ({ scrollProgress = 0 }) => {
                     {/* === INTRO MILESTONE === */}
                     <IntroMilestone
                         z={-(cycleIndex * STORY_CYCLE_LENGTH + 15)}
-                        scrollProgress={scrollProgress}
+                        scrollProgressRef={scrollProgressRef}
                     />
 
                     {/* === AWARDS MILESTONE === */}
                     <AwardsMilestone
                         z={-(cycleIndex * STORY_CYCLE_LENGTH + 55)}
-                        scrollProgress={scrollProgress}
+                        scrollProgressRef={scrollProgressRef}
                     />
 
                     {/* === JOURNEY MILESTONE === */}
                     <JourneyMilestone
                         z={-(cycleIndex * STORY_CYCLE_LENGTH + 95)}
-                        scrollProgress={scrollProgress}
+                        scrollProgressRef={scrollProgressRef}
                     />
 
                     {/* === SKILLS MILESTONE === */}
 
                     <SkillsMilestone
                         z={-(cycleIndex * STORY_CYCLE_LENGTH + 135)}
-                        scrollProgress={scrollProgress}
+                        scrollProgressRef={scrollProgressRef}
                     />
                 </group>
             ))}
@@ -243,7 +245,7 @@ const InfiniteSkyManager = ({ scrollProgress = 0 }) => {
  * INTRO Milestone - Special detailed layout
  * Elements spread apart as they approach camera
  */
-const IntroMilestone = ({ z, scrollProgress }) => {
+const IntroMilestone = ({ z, scrollProgressRef }) => {
     // Load avatar texture
     const avatarTexture = useLoader(THREE.TextureLoader, '/textures/about/awatarnachmurce.webp');
     const { camera, viewport } = useThree();
@@ -273,6 +275,7 @@ const IntroMilestone = ({ z, scrollProgress }) => {
 
         // === TWARDA LINIA CLIP (RĘCZNE OBLICZENIE WORLD Z) ===
         // worldZ = pokój(-25) + scrollProgress + lokalna pozycja milestone
+        const scrollProgress = scrollProgressRef?.current || 0;
         const worldZ = ROOM_Z + scrollProgress + z;
         groupRef.current.visible = worldZ < MILESTONE_CORRIDOR_CLIP_Z;
 
@@ -458,7 +461,7 @@ const AWARDS_DATA = {
  * AWARDS Milestone - Floating Cards
  * SOTY (center), SOTD, SOTM, Featured (behind)
  */
-const AwardsMilestone = ({ z, scrollProgress }) => {
+const AwardsMilestone = ({ z, scrollProgressRef }) => {
     const { camera, viewport } = useThree();
     const isMobile = viewport.width < 8;
     const { openOverlay } = useScene();
@@ -525,10 +528,10 @@ const AwardsMilestone = ({ z, scrollProgress }) => {
                 });
             }
             if (hideDelayRef.current) hideDelayRef.current.kill();
-        if (paintedRef.current) {
-            paintedRef.current.visible = true;
-            if (paintedRef.current.material) paintedRef.current.material.opacity = 1;
-        }
+            if (paintedRef.current) {
+                paintedRef.current.visible = true;
+                if (paintedRef.current.material) paintedRef.current.material.opacity = 1;
+            }
         } else {
             if (revealRef.current) {
                 gsap.to(revealRef.current, {
@@ -539,16 +542,17 @@ const AwardsMilestone = ({ z, scrollProgress }) => {
                 });
             }
             hideDelayRef.current = gsap.delayedCall(0.55, () => {
-            if (paintedRef.current && paintedRef.current.material) {
-                paintedRef.current.material.opacity = 0;
-            }
-        });
+                if (paintedRef.current && paintedRef.current.material) {
+                    paintedRef.current.material.opacity = 0;
+                }
+            });
         }
     };
 
     useFrame((state) => {
         if (!groupRef.current) return;
 
+        const scrollProgress = scrollProgressRef?.current || 0;
         const worldZ = ROOM_Z + scrollProgress + z;
         groupRef.current.visible = worldZ < MILESTONE_CORRIDOR_CLIP_Z;
         if (!groupRef.current.visible) return;
@@ -796,7 +800,7 @@ const AwardsMilestone = ({ z, scrollProgress }) => {
  * JOURNEY Milestone - Floating Islands
  * UO Island (left) and Freelance Island (right) floating in clouds
  */
-const JourneyMilestone = ({ z, scrollProgress }) => {
+const JourneyMilestone = ({ z, scrollProgressRef }) => {
     const { camera, viewport } = useThree();
     const isMobile = viewport.width < 8;
     const groupRef = useRef();
@@ -823,6 +827,7 @@ const JourneyMilestone = ({ z, scrollProgress }) => {
         if (!groupRef.current) return;
 
         // === TWARDA LINIA CLIP (RĘCZNE OBLICZENIE WORLD Z) ===
+        const scrollProgress = scrollProgressRef?.current || 0;
         const worldZ = ROOM_Z + scrollProgress + z;
         groupRef.current.visible = worldZ < MILESTONE_CORRIDOR_CLIP_Z;
         if (!groupRef.current.visible) return;
@@ -1255,7 +1260,7 @@ const SkillBalloon = ({ config, revealFactor, spreadFactor, time }) => {
     );
 };
 
-const SkillsMilestone = ({ z, scrollProgress }) => {
+const SkillsMilestone = ({ z, scrollProgressRef }) => {
     const { camera, viewport } = useThree();
     const isMobile = viewport.width < 8;
     const groupRef = useRef();
@@ -1267,6 +1272,7 @@ const SkillsMilestone = ({ z, scrollProgress }) => {
         if (!groupRef.current) return;
 
         // === TWARDA LINIA CLIP (RĘCZNE OBLICZENIE WORLD Z) ===
+        const scrollProgress = scrollProgressRef?.current || 0;
         const worldZ = ROOM_Z + scrollProgress + z;
         groupRef.current.visible = worldZ < MILESTONE_CORRIDOR_CLIP_Z;
         if (!groupRef.current.visible) return;

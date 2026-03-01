@@ -23,6 +23,8 @@ export const SceneProvider = ({ children }) => {
     const [pendingDoorClick, setPendingDoorClick] = useState(null); // Label of door to click after teleport
     const [isFastTeleport, setIsFastTeleport] = useState(false); // Fast teleport in progress (skip animations)
 
+    // Inspecting state removed to avoid global re-renders
+
     const enterRoom = useCallback((roomId) => {
         setCurrentRoom(roomId);
         setExitRequested(false); // Clear any pending exit request

@@ -20,10 +20,10 @@ const Door = ({
     const doorRef = useRef();
     const frameRef = useRef();
     const glowRef = useRef();
-    const [isHovered, setIsHovered] = useState(false);
-    const [isOpen, setIsOpen] = useState(false);
-    const [isAnimating, setIsAnimating] = useState(false);
-    const [isNear, setIsNear] = useState(false);
+    const isHoveredRef = useRef(false);
+    const isOpenRef = useRef(false);
+    const isAnimatingRef = useRef(false);
+    const isNearRef = useRef(false);
     const { camera } = useThree();
     const closeTimerRef = useRef(null);
 
@@ -35,8 +35,8 @@ const Door = ({
     useFrame(() => {
         const distance = Math.abs(camera.position.z - position[2]);
         const near = distance < 8;
-        if (near !== isNear) {
-            setIsNear(near);
+        if (near !== isNearRef.current) {
+            isNearRef.current = near;
         }
     });
 
@@ -48,14 +48,14 @@ const Door = ({
 
     const handleClick = useCallback((e) => {
         e.stopPropagation();
-        if (isAnimating) return;
+        if (isAnimatingRef.current) return;
 
-        if (isOpen) {
+        if (isOpenRef.current) {
             closeDoor();
             return;
         }
 
-        setIsAnimating(true);
+        isAnimatingRef.current = true;
 
         const doorWorldPos = new THREE.Vector3();
         frameRef.current.getWorldPosition(doorWorldPos);
@@ -70,12 +70,12 @@ const Door = ({
             ease: 'power2.inOut',
             onComplete: () => openDoor()
         });
-    }, [camera, side, isOpen, isAnimating]);
+    }, [camera, side, openDoor, closeDoor]);
 
     const openDoor = useCallback(() => {
         if (!doorRef.current) return;
 
-        setIsOpen(true);
+        isOpenRef.current = true;
         const openAngle = side === 'left' ? Math.PI * 0.6 : -Math.PI * 0.6;
 
         gsap.to(doorRef.current.rotation, {
@@ -83,7 +83,7 @@ const Door = ({
             duration: 0.7,
             ease: 'power2.out',
             onComplete: () => {
-                setIsAnimating(false);
+                isAnimatingRef.current = false;
                 onEnter?.();
                 closeTimerRef.current = setTimeout(() => closeDoor(), autoCloseDelay);
             }
@@ -91,31 +91,31 @@ const Door = ({
     }, [side, onEnter, autoCloseDelay]);
 
     const closeDoor = useCallback(() => {
-        if (!doorRef.current || !isOpen) return;
+        if (!doorRef.current || !isOpenRef.current) return;
         if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
 
-        setIsAnimating(true);
+        isAnimatingRef.current = true;
         gsap.to(doorRef.current.rotation, {
             y: 0,
             duration: 0.6,
             ease: 'power2.in',
             onComplete: () => {
-                setIsOpen(false);
-                setIsAnimating(false);
+                isOpenRef.current = false;
+                isAnimatingRef.current = false;
             }
         });
-    }, [isOpen]);
+    }, []);
 
     useFrame(() => {
-        if (doorRef.current && !isOpen && !isAnimating) {
-            const targetScale = isHovered ? 1.02 : 1;
+        if (doorRef.current && !isOpenRef.current && !isAnimatingRef.current) {
+            const targetScale = isHoveredRef.current ? 1.02 : 1;
             doorRef.current.scale.x = THREE.MathUtils.lerp(doorRef.current.scale.x, targetScale, 0.1);
             doorRef.current.scale.y = THREE.MathUtils.lerp(doorRef.current.scale.y, targetScale, 0.1);
         }
 
         // Glow intensity based on proximity
         if (glowRef.current) {
-            const targetOpacity = isNear ? 0.6 : 0.1;
+            const targetOpacity = isNearRef.current ? 0.6 : 0.1;
             glowRef.current.material.opacity = THREE.MathUtils.lerp(
                 glowRef.current.material.opacity,
                 targetOpacity,
@@ -204,14 +204,16 @@ const Door = ({
                     position={[side === 'left' ? doorWidth / 2 : -doorWidth / 2, 0, 0.02]}
                     onClick={handleClick}
                     onPointerEnter={() => {
-                        setIsHovered(true);
+                        isHoveredRef.current = true;
                     }}
                     onPointerLeave={() => {
-                        setIsHovered(false);
+                        isHoveredRef.current = false;
                     }}
                 >
                     <planeGeometry args={[doorWidth, doorHeight]} />
-                    <meshStandardMaterial color={isHovered ? '#ebe5d8' : color} roughness={0.85} />
+                    {/* Only use base color since React state won't trigger standard material color change.
+                        The scale effect on hover handles the feedback. */}
+                    <meshStandardMaterial color={color} roughness={0.85} />
                 </mesh>
 
                 {/* Decorative panels */}

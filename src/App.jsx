@@ -1,11 +1,13 @@
 import { useState, Suspense, useEffect, useCallback, useLayoutEffect, lazy } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { Preload, useTexture, Text, PerformanceMonitor } from '@react-three/drei';
+import { Perf } from 'r3f-perf';
 import * as THREE from 'three';
 
 import Preloader from './components/dom/Preloader';
 import PaperTransition from './components/dom/PaperTransition';
 import { AudioProvider, useAudio } from './context/AudioManager';
+import { initAudio } from './utils/audioManager';
 import { PerformanceProvider, usePerformance } from './context/PerformanceContext';
 import { SceneProvider } from './context/SceneContext';
 import NavigationUI from './components/ui/NavigationUI';
@@ -65,6 +67,11 @@ function AppContent() {
   // Use Performance Context
   const { settings, downgradeTier, tier } = usePerformance();
 
+  // Force initialize audio in the background on mount
+  useEffect(() => {
+    initAudio();
+  }, []);
+
   const handleSceneReady = useCallback(() => {
     requestAnimationFrame(() => {
       setSceneReady(true);
@@ -105,6 +112,9 @@ function AppContent() {
                 onFallback={() => downgradeTier()}
               />
 
+              {/* Advanced FPS & Performance Monitor */}
+              <Perf position="top-left" minimal={false} />
+
               <Suspense fallback={null}>
                 <Experience
                   isLoaded={isLoaded}
@@ -136,10 +146,14 @@ function AppContent() {
   );
 }
 
+import { AchievementsProvider } from './context/AchievementsContext';
+
 export default function App() {
   return (
     <PerformanceProvider>
-      <AppContent />
+      <AchievementsProvider>
+        <AppContent />
+      </AchievementsProvider>
     </PerformanceProvider>
   );
 }

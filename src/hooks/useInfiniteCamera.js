@@ -2,6 +2,7 @@ import { useRef, useEffect, useCallback, useLayoutEffect } from 'react';
 import gsap from 'gsap';
 import { useThree, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useAchievements } from '../context/AchievementsContext';
 
 // Door positions for auto-glance
 const DOOR_POSITIONS = [
@@ -40,6 +41,7 @@ const useInfiniteCamera = ({
     const scrollEnabledRef = useRef(scrollEnabled);
     const parallaxEnabledRef = useRef(parallaxEnabled);
     const justEnabled = useRef(false);
+    const { unlockAchievement } = useAchievements();
 
     // Mobile touch tracking
     const touchStart = useRef({ x: 0, y: 0 });
@@ -90,9 +92,12 @@ const useInfiniteCamera = ({
             targetZ.current = camera.position.z;
             currentZ.current = camera.position.z;
 
-            // Sync parallax with CURRENT camera position
-            parallax.current = { x: camera.position.x, y: camera.position.y - 0.2 };
-            targetParallax.current = { x: camera.position.x, y: camera.position.y - 0.2 };
+            // Sync parallax with CURRENT camera position ONLY if we just enabled
+            // To prevent snapping when achievements update the component
+            if (!wasScrollEnabled) {
+                parallax.current = { x: camera.position.x, y: camera.position.y - 0.2 };
+                targetParallax.current = { x: camera.position.x, y: camera.position.y - 0.2 };
+            }
 
             // Initialize glanceOffset with the CORRECT value for current position
             // This makes camera immediately look at the door (if near one) instead of looking forward first
@@ -116,7 +121,8 @@ const useInfiniteCamera = ({
         e.preventDefault();
         const delta = e.deltaY * scrollSpeed;
         targetZ.current -= delta;
-    }, [scrollSpeed]);
+        unlockAchievement('corridor_explore');
+    }, [scrollSpeed, unlockAchievement]);
 
     // Handle mouse parallax (desktop) - ALWAYS tracks mouse position
     // but only applies to targetParallax when enabled
@@ -149,6 +155,7 @@ const useInfiniteCamera = ({
         if (scrollEnabledRef.current) {
             const deltaY = (touchStart.current.y - currentY) * scrollSpeed * 1.5;
             targetZ.current -= deltaY;
+            unlockAchievement('corridor_explore');
         }
 
         // Horizontal swipe -> camera glance (works with parallax enabled)
@@ -167,6 +174,9 @@ const useInfiniteCamera = ({
     // Handle device orientation (gyroscope for mobile parallax)
     const handleDeviceOrientation = useCallback((e) => {
         if (!parallaxEnabledRef.current || !useGyroscope.current) return;
+
+        // Desktop browsers sometimes fire this event with null values immediately when attached
+        if (e.gamma === null && e.beta === null) return;
 
         // gamma: left-to-right tilt (-90 to 90)
         // beta: front-to-back tilt (-180 to 180), 45 is roughly "holding phone naturally"

@@ -6,6 +6,7 @@ import gsap from 'gsap';
 import RoomInterior from './RoomInterior';
 import '../shaders/RevealMaterial'; // Registers alpha-discard reveal shader
 import { useScene } from '../../../context/SceneContext';
+import { useAchievements } from '../../../context/AchievementsContext';
 
 // Constants from CorridorSegment
 const WALL_X_OUTER = 3.5;
@@ -75,7 +76,7 @@ const DoorSection = ({
     const [isHovered, setIsHovered] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
     const [isAnimating, setIsAnimating] = useState(false);
-    const [isNear, setIsNear] = useState(false);
+    const isNearRef = useRef(false);
     const [isInsideRoom, setIsInsideRoom] = useState(false);
     const [isTiltLocked, setIsTiltLocked] = useState(false); // Lock tilt when entering room
     const [shouldRenderRoom, setShouldRenderRoom] = useState(false); // Lazy loading state
@@ -97,6 +98,8 @@ const DoorSection = ({
         signalRoomReady,
         teleportPhase // We need this to delay reset until curtain is closed
     } = useScene();
+
+    const { unlockAchievement } = useAchievements();
 
 
 
@@ -288,7 +291,21 @@ const DoorSection = ({
         ? WALL_LENGTH / 2
         : -WALL_LENGTH / 2;
 
+    // Force shader compilation: let the painted versions render for 2 frames during preloader, then hide
+    const compileFramesRef = useRef(0);
     useFrame(() => {
+        // === SHADER COMPILE (first 2 frames only) ===
+        if (compileFramesRef.current < 2) {
+            compileFramesRef.current++;
+            if (compileFramesRef.current === 2) {
+                if (!isHovered && !isOpen) {
+                    if (doorPaintedRef.current) doorPaintedRef.current.visible = false;
+                    if (handlePaintedRef.current) handlePaintedRef.current.visible = false;
+                }
+            }
+        }
+
+        // === TILT ANIMATION ===
         if (!groupRef.current) return;
 
         let targetTilt = BASE_TILT;
@@ -299,10 +316,7 @@ const DoorSection = ({
         } else {
             // Normal proximity-based tilting
             const distance = Math.abs(camera.position.z - position[2]);
-            const near = distance < 8;
-            if (near !== isNear) {
-                setIsNear(near);
-            }
+            isNearRef.current = distance < 8;
 
             if (distance < TILT_START && distance > TILT_PEAK) {
                 const t = (TILT_START - distance) / (TILT_START - TILT_PEAK);
@@ -1103,12 +1117,11 @@ const DoorSection = ({
                             <meshStandardMaterial transparent={true} opacity={0} depthWrite={false} />
                         </mesh>
 
-                        {/* Painted layer (behind sketch) - hidden until hover */}
+                        {/* Painted layer (behind sketch) - hidden after 2 frames to precompile shader */}
                         <mesh
                             ref={doorPaintedRef}
                             position={[doorMeshX, -0.2, -0.001]}
                             scale={[(side === 'right' && label !== 'THE STUDIO') ? -1 : 1, 1, 1]}
-                            visible={false}
                         >
                             <planeGeometry args={[doorWidth, doorHeight]} />
                             <meshStandardMaterial
@@ -1153,8 +1166,8 @@ const DoorSection = ({
 
                         {/* Handle Layer - pivot at screw position */}
                         <group ref={handleRef} position={[doorMeshX + (side === 'left' ? 0.45 : -0.45), -0.29, 0.03]}>
-                            {/* Painted handle (behind) - hidden until hover */}
-                            <mesh ref={handlePaintedRef} position={[side === 'left' ? -0.50 : 0.50, 0.14, -0.001]} scale={[side === 'right' ? -1 : 1, 1, 1]} visible={false}>
+                            {/* Painted handle (behind) - hidden after 2 frames */}
+                            <mesh ref={handlePaintedRef} position={[side === 'left' ? -0.50 : 0.50, 0.14, -0.001]} scale={[side === 'right' ? -1 : 1, 1, 1]}>
                                 <planeGeometry args={[doorWidth, doorHeight]} />
                                 <meshStandardMaterial
                                     map={handlePaintedTexture}
@@ -1179,7 +1192,7 @@ const DoorSection = ({
                     </group>
                 </group>
             </group>
-        </group>
+        </group >
     );
 };
 

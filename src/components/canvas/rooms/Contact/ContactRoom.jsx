@@ -7,6 +7,7 @@ import MessagePaper from './MessagePaper';
 import SocialBarrel from './SocialBarrel';
 import { useScene } from '../../../../context/SceneContext';
 import GalleryClouds from '../Gallery/GalleryClouds';
+import { useAchievements } from '../../../../context/AchievementsContext';
 
 // ============================================
 // ============================================
@@ -81,6 +82,7 @@ const PHASE = {
 const ContactRoom = ({ showRoom, onReady, isExiting }) => {
     const { camera } = useThree();
     const { isTeleporting } = useScene();
+    const { showTutorial, unlockAchievement } = useAchievements();
 
     // Load Sea Texture
     const seaTexture = useTexture("/textures/contact/faletopdown.webp");
@@ -242,6 +244,7 @@ const ContactRoom = ({ showRoom, onReady, isExiting }) => {
             if (frameCount.current >= FRAMES_TO_WAIT) {
                 hasSignaledReady.current = true;
                 onReady?.();
+                setTimeout(() => showTutorial('contact_submit'), 2000);
             }
         }
 
@@ -475,6 +478,8 @@ const ContactRoom = ({ showRoom, onReady, isExiting }) => {
                             setEmailUsername(username);
                             console.log('📧 Email username for writing:', username);
                         }
+
+                        unlockAchievement('contact_submit');
                     }}
                     onFoldComplete={handleFoldComplete}
                     onInsertComplete={handleInsertComplete}

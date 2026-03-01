@@ -60,6 +60,10 @@ export const CORRIDOR_TEXTURES = [
     '/textures/corridor/doors/drzwisocial.webp',
     '/textures/corridor/doors/drzwiabout.webp',
     '/textures/corridor/doors/drzwikontakt.webp',
+    '/textures/corridor/doors/drzwiprojekty_painted.webp',
+    '/textures/corridor/doors/drzwisocial_painted.webp',
+    '/textures/corridor/doors/drzwiabout_painted.webp',
+    '/textures/corridor/doors/drzwikontakt_painted.webp',
     // Signs
     '/textures/corridor/pustatabliczka.png',
     // Decorations
@@ -72,10 +76,19 @@ export const CORRIDOR_TEXTURES = [
     '/textures/corridor/decorations/coffee_cup.webp',
 ];
 
-// Additional textures from App.jsx
+// Additional textures from App.jsx and avatar animations
 export const UI_TEXTURES = [
     '/images/avatar-thinking.webp',
     '/images/avatar-hero.webp',
+    '/textures/corridor/avatar_anim/1.webp',
+    '/textures/corridor/avatar_anim/2.webp',
+    '/textures/corridor/avatar_anim/3.webp',
+    '/textures/corridor/avatar_anim/4.webp',
+    '/textures/corridor/avatar_anim/5.webp',
+    '/textures/corridor/avatar_anim/6.webp',
+    '/textures/corridor/avatar_anim/7.webp',
+    '/textures/corridor/avatar_anim/8.webp',
+    '/textures/corridor/avatar_anim/9.webp',
 ];
 
 // Combined list for preloading

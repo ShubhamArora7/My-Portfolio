@@ -6,6 +6,7 @@ import PaperAirplane from './PaperAirplane';
 import InfiniteSkyManager from './InfiniteSkyManager';
 import StoryMilestone from './StoryMilestone';
 import { useScene } from '../../../../context/SceneContext';
+import { useAchievements } from '../../../../context/AchievementsContext';
 
 // Chunk length for looping flight effect (matches SkyChunk)
 const CHUNK_LENGTH = 40;
@@ -22,6 +23,7 @@ const STORY_MILESTONES = [
 const AboutRoom = ({ showRoom, onReady, isExiting }) => {
     const { camera } = useThree();
     const { isTeleporting, overlayContent } = useScene();
+    const { showTutorial, unlockAchievement } = useAchievements();
 
     // Use ref to track overlay state for event listeners (avoids stale closures)
     const overlayRef = useRef(overlayContent);
@@ -32,12 +34,11 @@ const AboutRoom = ({ showRoom, onReady, isExiting }) => {
     // Track if we've signaled ready
     const hasSignaledReady = useRef(false);
     const frameCount = useRef(0);
-    const FRAMES_TO_WAIT = 5;
+    const FRAMES_TO_WAIT = 25;
 
     // Momentum-based scroll state
     const scrollPosition = useRef(0);
     const scrollVelocity = useRef(0);
-    const [displayProgress, setDisplayProgress] = useState(0);
 
     // Save base camera rotation on first render
     const baseCameraRotation = useRef({ x: 0, y: 0, z: 0 });
@@ -46,6 +47,10 @@ const AboutRoom = ({ showRoom, onReady, isExiting }) => {
     // Smoothed flight effect values
     const currentBank = useRef(0);
     const currentPitch = useRef(0);
+
+    // Ref for the entire room to manage frustum culling
+    const roomRef = useRef();
+    const airplaneGroupRef = useRef();
 
     // Reset camera rotation when teleporting starts
     useEffect(() => {
@@ -63,10 +68,28 @@ const AboutRoom = ({ showRoom, onReady, isExiting }) => {
     // Ready detection + flight animation
     useFrame((state, delta) => {
         if (!hasSignaledReady.current) {
+            // Force rendering of all objects (even outside frustum) to compile shaders
+            if (roomRef.current) {
+                roomRef.current.traverse((child) => {
+                    if (child.isMesh) child.frustumCulled = false;
+                });
+            }
+
             frameCount.current++;
             if (frameCount.current >= FRAMES_TO_WAIT) {
+                // Restore frustum culling for performance
+                if (roomRef.current) {
+                    roomRef.current.traverse((child) => {
+                        if (child.isMesh) child.frustumCulled = true;
+                    });
+                }
+
                 hasSignaledReady.current = true;
                 onReady?.();
+                // trigger achievement hint when showing the room
+                if (!isTeleporting && !isExiting) {
+                    setTimeout(() => showTutorial('about_fly'), 2000);
+                }
             }
         }
 
@@ -86,7 +109,10 @@ const AboutRoom = ({ showRoom, onReady, isExiting }) => {
             scrollVelocity.current = 0;
         }
 
-        setDisplayProgress(scrollPosition.current);
+        // Unlock achievement if user scrolled enough
+        if (scrollPosition.current > 15) {
+            unlockAchievement('about_fly');
+        }
 
         // === EXITING: Disable control completely ===
         // DoorSection handles the exit animation (position + rotation)
@@ -111,8 +137,14 @@ const AboutRoom = ({ showRoom, onReady, isExiting }) => {
             const chunkProgress = (scrollPosition.current % CHUNK_LENGTH) / CHUNK_LENGTH;
 
             // Flight maneuver pattern - loops back to start at each chunk
-            const bankAngle = Math.sin(chunkProgress * Math.PI * 2) * 0.12;
-            const pitchAngle = Math.sin(chunkProgress * Math.PI * 4) * 0.05;
+            // Slow down the start: if chunkProgress is small, multiply by a curve
+            let bankAngle = Math.sin(chunkProgress * Math.PI * 2) * 0.12;
+            let pitchAngle = Math.sin(chunkProgress * Math.PI * 4) * 0.05;
+
+            // Ease in the flight effect during the first few units
+            const flightProgress = Math.min(1, (scrollPosition.current - 0.5) / 5.0);
+            bankAngle *= flightProgress;
+            pitchAngle *= flightProgress;
 
             // Smooth lerp
             const lerpSpeed = 1 - Math.pow(0.02, delta);
@@ -122,6 +154,18 @@ const AboutRoom = ({ showRoom, onReady, isExiting }) => {
             // Apply to camera (base + effect)
             camera.rotation.x = baseCameraRotation.current.x + currentPitch.current;
             camera.rotation.z = baseCameraRotation.current.z + currentBank.current;
+        } else {
+            // Unconditionally keep these zero before flight active
+            currentBank.current = 0;
+            currentPitch.current = 0;
+        }
+
+        // Apply to airplane unconditionally so it stays properly aligned
+        // When pitch is 0, rotation.x is 0.1
+        // When bank is 0, rotation.z is 0
+        if (airplaneGroupRef.current) {
+            airplaneGroupRef.current.rotation.x = currentPitch.current * 3 + 0.1;
+            airplaneGroupRef.current.rotation.z = -currentBank.current * 2;
         }
     });
 
@@ -163,22 +207,18 @@ const AboutRoom = ({ showRoom, onReady, isExiting }) => {
         };
     }, []);
 
-    // Calculate airplane tilt based on current maneuvers
-    const airplanePitch = currentPitch.current * 3 + 0.1;
-    const airplaneBank = -currentBank.current * 2;
-
     return (
-        <group position={[0, 0, -25]}>
+        <group ref={roomRef} position={[0, 0, -25]}>
             {/* === PAPER AIRPLANE (follows camera maneuvers) === */}
-            <PaperAirplane
-                position={[0, -0.3, 1]}
-                rotation={[airplanePitch, 0, airplaneBank]}
-                scale={0.8}
-                color="#faf8f5"
-            />
+            <group ref={airplaneGroupRef} position={[0, -0.3, 1]}>
+                <PaperAirplane
+                    scale={0.8}
+                    color="#faf8f5"
+                />
+            </group>
 
             {/* === INFINITE SKY WITH CLOUDS + STORY MILESTONES === */}
-            <InfiniteSkyManager scrollProgress={displayProgress} />
+            <InfiniteSkyManager scrollProgressRef={scrollPosition} />
 
             {/* === SKY BACKDROP === */}
             <mesh position={[0, 0, -200]}>

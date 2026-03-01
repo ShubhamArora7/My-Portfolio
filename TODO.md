@@ -57,24 +57,24 @@
 - [ ] **Contact:** Wzbogacić puste środowisko (gdzie jest tylko morze i beczki): dodać w tle minimalistyczne fale, wyspę na horyzoncie i chmury na niebie.
 
 ### 5. Poprawić grafiki — czytelność vs detale w tle
-- [ ] About Room: Sprawdzić kontrast tekstów na tle chmur (milestones)
+- [X] About Room: Sprawdzić kontrast tekstów na tle chmur (milestones)
 - [X] Gallery Room: Upewnić się, że karty projektów są czytelne na tle domków i liny
 - [X] Studio Room: Sprawdzić czy info na monitorach jest czytelne
-- [ ] Contact Room: Upewnić się, że opcje kontaktowe wyróżniają się
+- [X] Contact Room: Upewnić się, że opcje kontaktowe wyróżniają się
 - [X] Korytarz: Sygnatura drzwi dobrze widoczna, dekoracje nie przytłaczają
-- [ ] Dodać głębię — elementy ważne z większą opacitą, tło z mniejszą
+- [X] Dodać głębię — elementy ważne z większą opacitą, tło z mniejszą
 - **Pliki:** Wszystkie pokoje (About, Studio, Gallery, Contact)
 
 ### 6. Interaktywne elementy: B&W → kolor na hover
-- [ ] Zaprojektować shader/material swap: elementy interaktywne domyślnie w grayscale
-- [ ] Na hover → animowana tranzycja do pełnego koloru (GSAP lub shader uniform)
-- [ ] Elementy docelowe:
-  - [ ] Drzwi w korytarzu (sygnatura pokoju)
-  - [ ] Monitory w Studio
-  - [ ] Karty projektów w Gallery
-  - [ ] Beczki social media w Contact
-  - [ ] Karty Awards w About
-- [ ] Opcja: shader `saturation` uniform animowany od 0 do 1
+- [X] Zaprojektować shader/material swap: elementy interaktywne domyślnie w grayscale
+- [X] Na hover → animowana tranzycja do pełnego koloru (GSAP lub shader uniform)
+- [X] Elementy docelowe:
+  - [X] Drzwi w korytarzu (sygnatura pokoju)
+  - [X] Monitory w Studio
+  - [X] Karty projektów w Gallery
+  - [X] Beczki social media w Contact
+  - [X] Karty Awards w About
+- [X] Opcja: shader `saturation` uniform animowany od 0 do 1
 - **Pliki:** Nowe utility + modyfikacja wszystkich pokojów
 
 ---

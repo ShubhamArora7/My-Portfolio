@@ -4,6 +4,7 @@ import { Text, useTexture, Float } from '@react-three/drei';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { useScene } from '../../../../context/SceneContext';
+import { useAchievements } from '../../../../context/AchievementsContext';
 import PaperMaterial from './PaperMaterial';
 import GalleryClouds from './GalleryClouds';
 
@@ -62,6 +63,7 @@ const RIGHT_CROP_AMOUNT = 0.2;
 
 const GalleryRoom = ({ showRoom, onReady }) => {
     const { openOverlay } = useScene();
+    const { showTutorial, unlockAchievement } = useAchievements();
     const groupRef = useRef();
     const [scrollOffset, setScrollOffset] = useState(0);
     const targetScroll = useRef(0);
@@ -72,6 +74,9 @@ const GalleryRoom = ({ showRoom, onReady }) => {
 
     const handleCardClick = async (clickedIndex) => {
         if (globalIsAnimating) return;
+
+        // Unlock inspect achievement
+        unlockAchievement('gallery_inspect');
 
         if (selectedCard === clickedIndex) {
             setGlobalIsAnimating(true);
@@ -104,6 +109,11 @@ const GalleryRoom = ({ showRoom, onReady }) => {
         if (frameCount.current >= FRAMES_TO_WAIT) {
             hasSignaledReady.current = true;
             onReady?.();
+
+            // Wait for the DoorSection 1.5s camera fly-in to finish before showing tutorial
+            setTimeout(() => {
+                showTutorial('gallery_inspect');
+            }, 2000);
         }
     });
 

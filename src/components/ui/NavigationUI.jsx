@@ -1,6 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import gsap from 'gsap';
 import { useScene } from '../../context/SceneContext';
 import { useAudio } from '../../context/AudioManager';
+import { setMusicVolume, getMusicVolume } from '../../utils/audioManager';
+import { useAchievements } from '../../context/AchievementsContext';
+import AchievementPopup from './AchievementPopup';
+import AchievementsPanel from './AchievementsPanel';
 import '../../styles/NavigationUI.scss';
 
 // Room data for the map - positions are percentages on the map image
@@ -17,25 +22,104 @@ const PIN_START_POSITION = { x: 50.5, y: 97 };
 
 const NavigationUI = () => {
     const { currentRoom, isInRoom, requestExit, hasEntered, teleportTo, isTeleporting } = useScene();
-    const { isMuted, toggleMute } = useAudio();
+    const { isMuted, toggleMute, globalVolume, setGlobalVolume } = useAudio();
+    const { showTutorial, unlockAchievement } = useAchievements();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [showCorridorHint, setShowCorridorHint] = useState(false);
-    const [hoveredRoom, setHoveredRoom] = useState(null); // Track which pin slot is hovered
+    const [hoveredRoom, setHoveredRoom] = useState(null);
     const [isExiting, setIsExiting] = useState(false); // Track when back button is clicked
 
-    // Show corridor hint when entering, auto-hide after 4 seconds
+    // Audio controls state
+    const [isAudioMenuOpen, setIsAudioMenuOpen] = useState(false);
+    const [isAchievementsOpen, setIsAchievementsOpen] = useState(false);
+    const [bgmVol, setBgmVol] = useState(0.3);
+    const [isUIHidden, setIsUIHidden] = useState(false);
+
     useEffect(() => {
-        if (hasEntered) {
-            setShowCorridorHint(true);
-            const timer = setTimeout(() => setShowCorridorHint(false), 4000);
-            return () => clearTimeout(timer);
+        const handleInspectChange = (e) => {
+            setIsUIHidden(e.detail);
+            if (e.detail) {
+                setIsMenuOpen(false);
+                setIsAudioMenuOpen(false);
+                setIsAchievementsOpen(false);
+            }
+        };
+        window.addEventListener('inspectChange', handleInspectChange);
+        return () => window.removeEventListener('inspectChange', handleInspectChange);
+    }, []);
+
+    const paintedMapsRefs = {
+        about: useRef(),
+        gallery: useRef(),
+        contact: useRef(),
+        studio: useRef()
+    };
+
+    useEffect(() => {
+        // About (zone: left 10%, top 20%, width 30%, height 35%)
+        // -> X: 10% to 40%, Y: 20% to 55%
+        gsap.to(paintedMapsRefs.about.current, {
+            clipPath: (hoveredRoom === 'about' || currentRoom === 'about')
+                ? 'polygon(10% 20%, 40% 20%, 40% 55%, 10% 55%)'
+                : 'polygon(10% 20%, 10% 20%, 10% 55%, 10% 55%)',
+            duration: 0.5,
+            ease: "power2.out"
+        });
+
+        // Gallery (zone: left 10%, bottom 8%, width 30%, height 35%)
+        // -> X: 10% to 40%, Y: 57% to 92% (since bottom=8% means top is 100-8-35=57%)
+        gsap.to(paintedMapsRefs.gallery.current, {
+            clipPath: (hoveredRoom === 'gallery' || currentRoom === 'gallery')
+                ? 'polygon(10% 57%, 40% 57%, 40% 92%, 10% 92%)'
+                : 'polygon(10% 57%, 10% 57%, 10% 92%, 10% 92%)',
+            duration: 0.5,
+            ease: "power2.out"
+        });
+
+        // Contact (zone: right 5%, top 10%, width 35%, height 25%)
+        // -> X: 60% to 95% (since right=5% means left is 100-5-35=60%), Y: 10% to 35%
+        gsap.to(paintedMapsRefs.contact.current, {
+            clipPath: (hoveredRoom === 'contact' || currentRoom === 'contact')
+                ? 'polygon(60% 10%, 95% 10%, 95% 35%, 60% 35%)'
+                : 'polygon(95% 10%, 95% 10%, 95% 35%, 95% 35%)',
+            duration: 0.5,
+            ease: "power2.out"
+        });
+
+        // Studio (zone: right 15%, bottom 19%, width 25%, height 40%)
+        // -> X: 60% to 85% (since right=15% means left is 100-15-25=60%), Y: 41% to 81% (since bottom=19% means top is 100-19-40=41%)
+        gsap.to(paintedMapsRefs.studio.current, {
+            clipPath: (hoveredRoom === 'studio' || currentRoom === 'studio')
+                ? 'polygon(60% 41%, 85% 41%, 85% 81%, 60% 81%)'
+                : 'polygon(85% 41%, 85% 41%, 85% 81%, 85% 81%)',
+            duration: 0.5,
+            ease: "power2.out"
+        });
+    }, [hoveredRoom, currentRoom]);
+
+    useEffect(() => {
+        setBgmVol(getMusicVolume());
+    }, []);
+
+    const handleBgmChange = (val) => {
+        setBgmVol(val);
+        setMusicVolume(val);
+    };
+
+    // Show entrance hint before entering, and explore hint when user enters
+    useEffect(() => {
+        if (!hasEntered && !isTeleporting) {
+            showTutorial('corridor_enter');
+        } else if (hasEntered && !isTeleporting && !isInRoom) {
+            showTutorial('corridor_explore');
         }
-    }, [hasEntered]);
+    }, [hasEntered, isTeleporting, isInRoom, showTutorial]);
 
     // Close menu when entering a room or starting teleport
     useEffect(() => {
         if (isInRoom || isTeleporting) {
             setIsMenuOpen(false);
+            setIsAudioMenuOpen(false);
+            setIsAchievementsOpen(false);
             setIsExiting(false);
         }
     }, [isInRoom, isTeleporting]);
@@ -53,6 +137,8 @@ const NavigationUI = () => {
 
         // Close map first, then start teleport
         setIsMenuOpen(false);
+        setIsAudioMenuOpen(false);
+        setIsAchievementsOpen(false);
         teleportTo(roomId);
     };
 
@@ -64,12 +150,8 @@ const NavigationUI = () => {
 
     return (
         <div className="navigation-ui">
-            {/* Entrance Hint - Before entering */}
-            {!hasEntered && (
-                <div className="entrance-hint">
-                    <span>👆 Click doors to enter</span>
-                </div>
-            )}
+            {/* Global Achievement Popup */}
+            <AchievementPopup />
 
             {/* Back Button - Only visible in rooms, hides up when clicked */}
             {hasEntered && isInRoom && (
@@ -86,7 +168,7 @@ const NavigationUI = () => {
 
             {/* Right side controls - Only visible after entering */}
             {hasEntered && (
-                <div className={`nav-controls ${isMenuOpen ? 'menu-open' : ''}`}>
+                <div className={`nav-controls ${isMenuOpen || isAudioMenuOpen ? 'menu-open' : ''} ${isUIHidden ? 'ui-hidden' : ''}`}>
                     {/* Hamburger Menu Button */}
                     <button
                         className={`nav-btn hamburger-btn ${isMenuOpen ? 'open' : ''}`}
@@ -100,12 +182,12 @@ const NavigationUI = () => {
                             <span></span>
                         </div>
                     </button>
-
                     {/* Audio Toggle Button */}
                     <button
-                        className="nav-btn audio-btn"
-                        onClick={toggleMute}
-                        aria-label={isMuted ? "Unmute" : "Mute"}
+                        className={`nav-btn audio-btn ${isAudioMenuOpen ? 'open' : ''}`}
+                        onClick={() => setIsAudioMenuOpen(!isAudioMenuOpen)}
+                        aria-label="Audio Settings"
+                        aria-expanded={isAudioMenuOpen}
                     >
                         {isMuted ? (
                             <svg viewBox="0 0 24 24" className="icon-audio">
@@ -120,6 +202,19 @@ const NavigationUI = () => {
                                 <path d="M18 5a9 9 0 0 1 0 14" />
                             </svg>
                         )}
+                    </button>
+                    {/* Achievements Toggle Button */}
+                    <button
+                        className={`nav-btn achievements-btn ${isAchievementsOpen ? 'open' : ''}`}
+                        onClick={() => setIsAchievementsOpen(!isAchievementsOpen)}
+                        aria-label="Achievements"
+                        aria-expanded={isAchievementsOpen}
+                    >
+                        <svg viewBox="0 0 24 24" className="icon-trophy">
+                            <path d="M8 21h8M12 17v4M7 4h10M5 4h14v5a7 7 0 0 1-7 7 7 7 0 0 1-7-7z" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M5 9H3V6h2" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M19 9h2V6h-2" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
                     </button>
                 </div>
             )}
@@ -170,6 +265,44 @@ const NavigationUI = () => {
                             {/* Map background image */}
                             <img src="/images/map.webp" alt="Portfolio Map" className="map-image" />
 
+                            {/* Painted Map Overlays */}
+                            <img ref={paintedMapsRefs.about} src="/images/map_about_painted.webp" alt="" className="painted-map-layer" style={{ clipPath: 'polygon(10% 20%, 10% 20%, 10% 55%, 10% 55%)' }} />
+                            <img ref={paintedMapsRefs.gallery} src="/images/map_gallery_painted.webp" alt="" className="painted-map-layer" style={{ clipPath: 'polygon(10% 57%, 10% 57%, 10% 92%, 10% 92%)' }} />
+                            <img ref={paintedMapsRefs.contact} src="/images/map_contact_painted.webp" alt="" className="painted-map-layer" style={{ clipPath: 'polygon(95% 10%, 95% 10%, 95% 35%, 95% 35%)' }} />
+                            <img ref={paintedMapsRefs.studio} src="/images/map_studio_painted.webp" alt="" className="painted-map-layer" style={{ clipPath: 'polygon(85% 41%, 85% 41%, 85% 81%, 85% 81%)' }} />
+
+                            {/* Hover Zones — 4 quadrants covering the map */}
+                            <div
+                                className="map-hover-zone zone-about"
+                                onMouseEnter={() => setHoveredRoom('about')}
+                                onMouseLeave={() => setHoveredRoom(null)}
+                                onClick={() => handleRoomClick('about')}
+                            />
+                            <div
+                                className="map-hover-zone zone-gallery"
+                                onMouseEnter={() => setHoveredRoom('gallery')}
+                                onMouseLeave={() => setHoveredRoom(null)}
+                                onClick={() => handleRoomClick('gallery')}
+                            />
+                            <div
+                                className="map-hover-zone zone-contact"
+                                onMouseEnter={() => setHoveredRoom('contact')}
+                                onMouseLeave={() => setHoveredRoom(null)}
+                                onClick={() => handleRoomClick('contact')}
+                            />
+                            <div
+                                className="map-hover-zone zone-studio"
+                                onMouseEnter={() => setHoveredRoom('studio')}
+                                onMouseLeave={() => setHoveredRoom(null)}
+                                onClick={() => handleRoomClick('studio')}
+                            />
+
+                            {/* Permanent Map Text Labels */}
+                            <div className="map-room-label about">ABOUT</div>
+                            <div className="map-room-label gallery">THE<br />GALLERY</div>
+                            <div className="map-room-label contact">CONTACT</div>
+                            <div className="map-room-label studio">THE<br />STUDIO</div>
+
                             {/* Pin slot markers - 4 locations */}
                             {ROOMS.map((room) => (
                                 <button
@@ -210,19 +343,70 @@ const NavigationUI = () => {
                 </div>
             )}
 
-            {/* Overlay to close menu */}
-            {isMenuOpen && (
-                <div
-                    className="menu-overlay"
-                    onClick={() => setIsMenuOpen(false)}
-                />
+            {/* Audio Panel — drops down from the button */}
+            {hasEntered && (
+                <div className={`audio-panel ${isAudioMenuOpen ? 'open' : ''}`}>
+                    <div className="audio-card">
+                        <div className="audio-header">
+                            <h3>AUDIO SETTINGS</h3>
+                            <button
+                                className="close-btn"
+                                onClick={() => setIsAudioMenuOpen(false)}
+                                aria-label="Close audio settings"
+                            >
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M18 6L6 18M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div className="audio-sliders-container">
+                            <div className="slider-group">
+                                <div className="slider-label">
+                                    <span>Music</span>
+                                    <span>{Math.round(bgmVol * 100)}%</span>
+                                </div>
+                                <input
+                                    type="range"
+                                    min="0" max="1" step="0.01"
+                                    value={bgmVol}
+                                    onChange={(e) => handleBgmChange(parseFloat(e.target.value))}
+                                    className="paper-slider"
+                                />
+                            </div>
+                            <div className="slider-group">
+                                <div className="slider-label">
+                                    <span>SFX</span>
+                                    <span>{Math.round(globalVolume * 100)}%</span>
+                                </div>
+                                <input
+                                    type="range"
+                                    min="0" max="1" step="0.01"
+                                    value={globalVolume}
+                                    onChange={(e) => setGlobalVolume(parseFloat(e.target.value))}
+                                    className="paper-slider"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
 
-            {/* Corridor Hint - Shows after entering */}
-            {showCorridorHint && !isInRoom && (
-                <div className="corridor-hint">
-                    <span>🖱️ Scroll to explore</span>
-                </div>
+            {/* Achievements Panel */}
+            <AchievementsPanel
+                isOpen={isAchievementsOpen}
+                onClose={() => setIsAchievementsOpen(false)}
+            />
+
+            {/* Overlay to close menus */}
+            {(isMenuOpen || isAudioMenuOpen || isAchievementsOpen) && (
+                <div
+                    className="menu-overlay"
+                    onClick={() => {
+                        setIsMenuOpen(false);
+                        setIsAudioMenuOpen(false);
+                        setIsAchievementsOpen(false);
+                    }}
+                />
             )}
         </div>
     );

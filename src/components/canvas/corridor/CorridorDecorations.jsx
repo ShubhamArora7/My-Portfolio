@@ -1,7 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import { useTexture, Text } from '@react-three/drei';
 import * as THREE from 'three';
-
+import { useFrame, useThree } from '@react-three/fiber';
 /**
  * CorridorDecorations - Dekoracje korytarza.
  * 
@@ -13,6 +13,15 @@ import * as THREE from 'three';
  *   corridorHeight: 3.5
  *   Bezpieczne strefy dekoracji: -5 do -15, -20 do -30, -34 do -46, -50 do -60, -64 do -75
  */
+
+// Globalne zmienne dla useFrame, aby uniknąć alokacji pamięci w każdej klatce i zapobiec ścinkom (GC stalls)
+const tempPos = new THREE.Vector3();
+const tempRot = new THREE.Quaternion();
+const tempScale = new THREE.Vector3();
+const tempCamDir = new THREE.Vector3();
+const tempEuler = new THREE.Euler();
+const tempQuat = new THREE.Quaternion();
+
 
 const CABIN_SKETCH_URL = '/fonts/CabinSketch-Regular.ttf';
 
@@ -32,7 +41,156 @@ const PictureContent = ({ imagePath, width, height }) => {
     );
 };
 
-const CorridorDecorations = ({ segmentLength, zOffset, corridorWidth = 4, corridorHeight = 3.5, zClip = 100000 }) => {
+const InspectableFrame = ({ frame, wallX, frameTexture, CABIN_SKETCH_URL, setCameraOverride }) => {
+    const { camera, viewport } = useThree();
+    const groupRef = useRef();
+
+    // Zapisujemy oryginalną pozycję i rotację na ścianie
+    const originalPos = useMemo(() => new THREE.Vector3(
+        frame.side === 'left' ? -wallX + (frame.offsetFromWall || 0) : wallX - (frame.offsetFromWall || 0),
+        frame.y,
+        frame.z
+    ), [frame, wallX]);
+
+    const originalRot = useMemo(() => new THREE.Euler(
+        0, frame.side === 'left' ? Math.PI / 2 : -Math.PI / 2, 0
+    ), [frame.side]);
+
+    const [isHovered, setIsHovered] = useState(false);
+    const [isInspected, setIsInspected] = useState(false);
+
+    // Sprawdzamy czy to urządzenie mobilne (wąski ekran) by całkowicie wyłączyć funkcję
+    const isMobile = viewport.width < 5 || viewport.aspect < 0.8;
+
+    // Kiedy komponent znika, na wszelki wypadek wyłączamy override
+    useEffect(() => {
+        return () => {
+            if (isInspected) {
+                if (setCameraOverride) setCameraOverride(false);
+                window.dispatchEvent(new CustomEvent('inspectChange', { detail: false }));
+            }
+        };
+    }, [isInspected, setCameraOverride]);
+
+    useEffect(() => {
+        if (isHovered && !isMobile) document.body.style.cursor = 'pointer';
+        else document.body.style.cursor = 'auto';
+    }, [isHovered, isMobile]);
+
+    useFrame((state, delta) => {
+        if (!groupRef.current) return;
+
+        if (isInspected) {
+            // Pozycja przed kamerą (bliżej)
+            camera.getWorldDirection(tempCamDir);
+
+            // Obliczamy responsywny dystans (fluid responsive)
+            // Gdy aspekt (szerokość/wysokość) jest mniejszy (wąskie ekrany np. laptopy max 1.3), odsuwamy obraz dalej (np. 2.2)
+            // Gdy aspekt jest duży (ultrawide, 16:9 ~ 1.77), przysuwamy obraz bliżej (np. 1.5)
+            // clamp(1.5, 2.8)
+            const baseDistance = 1.3;
+            // Im mniejszy aspekt (węższy ekran), tym większa odległość
+            const aspectOffset = Math.max(0, 1.8 - viewport.aspect) * 1.5;
+            const distance = Math.min(2.8, Math.max(1.5, baseDistance + aspectOffset));
+
+            // Punkt tuż przed kamerą (zwiększony dynamicznie - im więcej, tym dalej)
+            tempPos.copy(camera.position).add(tempCamDir.multiplyScalar(distance));
+
+            // Rotacja zwracająca obraz bezpośrednio do kamery
+            tempRot.copy(camera.quaternion);
+
+            // Efekt "3D Karty" na podstawie myszki
+            const tiltX = -state.pointer.y * 0.3;
+            const tiltY = state.pointer.x * 0.3;
+            tempEuler.set(tiltX, tiltY, 0);
+            tempQuat.setFromEuler(tempEuler);
+
+            tempRot.multiply(tempQuat);
+
+            // Lekko powiększamy obraz dla detalu
+            tempScale.set(1.2, 1.2, 1.2);
+        } else {
+            // Powrót na ścianę
+            tempPos.copy(originalPos);
+            tempRot.setFromEuler(originalRot);
+            tempScale.set(1, 1, 1);
+        }
+
+        // Płynna interpolacja (lerp/slerp) w każdym oknie renderowania
+        const factor = delta * 6;
+        groupRef.current.position.lerp(tempPos, factor);
+        groupRef.current.quaternion.slerp(tempRot, factor);
+        groupRef.current.scale.lerp(tempScale, factor);
+    });
+
+    return (
+        <group
+            ref={groupRef}
+            position={originalPos}
+            rotation={originalRot}
+            onClick={(e) => {
+                e.stopPropagation();
+                if (isMobile) return; // Całkowite wyłączenie na mobile
+                setIsInspected((prev) => {
+                    const next = !prev;
+                    if (setCameraOverride) setCameraOverride(next); // Blokowanie / odblokowanie poruszania kamerą
+                    window.dispatchEvent(new CustomEvent('inspectChange', { detail: next }));
+                    return next;
+                });
+                setIsHovered(false);
+            }}
+            onPointerOver={(e) => {
+                e.stopPropagation();
+                if (!isInspected && !isMobile) setIsHovered(true);
+            }}
+            onPointerOut={(e) => {
+                e.stopPropagation();
+                setIsHovered(false);
+            }}
+        >
+            {/* RAMKA */}
+            <mesh>
+                <planeGeometry args={[frame.width, frame.height]} />
+                <meshStandardMaterial
+                    map={frameTexture}
+                    transparent={true}
+                    alphaTest={0.1}
+                    side={THREE.DoubleSide}
+                    roughness={0.9}
+                />
+            </mesh>
+
+            {/* OBRAZEK WEWNĄTRZ */}
+            {frame.image && (
+                <PictureContent
+                    imagePath={frame.image}
+                    width={frame.imageWidth || frame.width * 0.7}
+                    height={frame.imageHeight || frame.height * 0.7}
+                />
+            )}
+
+            {/* PODPIS */}
+            {frame.signature && (
+                <Text
+                    position={[
+                        frame.signatureX !== undefined ? frame.signatureX : (frame.width / 2 - 0.1),
+                        frame.signatureY !== undefined ? frame.signatureY : (-frame.height / 2 + 0.15),
+                        0.02
+                    ]}
+                    fontSize={frame.signatureSize || 0.12}
+                    font={CABIN_SKETCH_URL}
+                    color={frame.signatureColor || "#333333"}
+                    anchorX="center"
+                    anchorY="middle"
+                >
+                    {frame.signature}
+                </Text>
+            )}
+        </group>
+    );
+};
+
+const CorridorDecorations = ({ segmentLength, zOffset, corridorWidth = 4, corridorHeight = 3.5, zClip = 100000, setCameraOverride }) => {
 
     const wallX = corridorWidth / 2 - 0.01;
     const floorY = -corridorHeight / 2;
@@ -284,55 +442,14 @@ const CorridorDecorations = ({ segmentLength, zOffset, corridorWidth = 4, corrid
                 edytuj odpowiedni obiekt w tablicy 'frames' powyżej.
             */}
             {frames.map((frame) => (
-                <group
+                <InspectableFrame
                     key={frame.id}
-                    position={[
-                        frame.side === 'left' ? -wallX + (frame.offsetFromWall || 0) : wallX - (frame.offsetFromWall || 0),
-                        frame.y,
-                        frame.z
-                    ]}
-                    rotation={[0, frame.side === 'left' ? Math.PI / 2 : -Math.PI / 2, 0]}
-                >
-                    {/* RAMKA */}
-                    <mesh>
-                        <planeGeometry args={[frame.width, frame.height]} />
-                        <meshStandardMaterial
-                            map={frameTexture}
-                            transparent={true}
-                            alphaTest={0.1}
-                            side={THREE.DoubleSide}
-                            roughness={0.9}
-                        />
-                    </mesh>
-
-                    {/* OBRAZEK WEWNĄTRZ (opcjonalny) */}
-                    {frame.image && (
-                        <PictureContent
-                            imagePath={frame.image}
-                            width={frame.imageWidth || frame.width * 0.7}
-                            height={frame.imageHeight || frame.height * 0.7}
-                        />
-                    )}
-
-                    {/* PODPIS (opcjonalny) */}
-                    {frame.signature && (
-                        <Text
-                            position={[
-                                // Używamy customowych pozycji lub domyślnych (prawy dolny róg)
-                                frame.signatureX !== undefined ? frame.signatureX : (frame.width / 2 - 0.1),
-                                frame.signatureY !== undefined ? frame.signatureY : (-frame.height / 2 + 0.15),
-                                0.02 // Slightly in front
-                            ]}
-                            fontSize={frame.signatureSize || 0.12}
-                            font={CABIN_SKETCH_URL}
-                            color={frame.signatureColor || "#333333"}
-                            anchorX="center" // Zmieniam na center, żeby łatwiej pozycjonować X/Y
-                            anchorY="middle"
-                        >
-                            {frame.signature}
-                        </Text>
-                    )}
-                </group>
+                    frame={frame}
+                    wallX={wallX}
+                    frameTexture={frameTexture}
+                    CABIN_SKETCH_URL={CABIN_SKETCH_URL}
+                    setCameraOverride={setCameraOverride}
+                />
             ))}
 
             {/* === SZAFKA (CABINET) === */}
