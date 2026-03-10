@@ -39,8 +39,8 @@ const StoryMilestone = ({
     useFrame((state, delta) => {
         if (!groupRef.current) return;
 
-        // Get world position of milestone (reuse vector to avoid GC pressure)
-        const worldPos = _tempWorldPos;
+        // Get world position of milestone
+        const worldPos = new THREE.Vector3();
         groupRef.current.getWorldPosition(worldPos);
 
         // Objects move TOWARDS camera (camera is at z ~ 0)

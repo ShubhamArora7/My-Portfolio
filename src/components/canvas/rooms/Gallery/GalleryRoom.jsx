@@ -898,8 +898,7 @@ const ProjectCard = forwardRef(({ index, project, clothespinTexture, currentScro
 
             // Hover animacja powiększania dla przycisku (napis się powiększa)
             const targetScale = btnHovered ? 1.08 : 1;
-            _tempScale.set(targetScale, targetScale, 1);
-            buttonGroupRef.current.scale.lerp(_tempScale, 0.15);
+            buttonGroupRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, 1), 0.15);
         }
 
         // --- Zrównaj pozycję górnego opisu (PROJECT DETAILS) ---

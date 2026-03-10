@@ -38,9 +38,8 @@ const SocialBarrel = ({ position, rotation = [0, 0, 0], texturePath, label, onCl
 
             // Hover scale
             const targetScale = hovered ? 1.1 : 1;
-            // Apply base scale * hover factor (reuse vector to avoid GC pressure)
-            _tempScale.set(targetScale, targetScale, 1);
-            meshRef.current.scale.lerp(_tempScale, 0.1);
+            // Apply base scale * hover factor
+            meshRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, 1), 0.1);
         }
     });
 
