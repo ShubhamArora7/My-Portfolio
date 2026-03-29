@@ -90,7 +90,7 @@ const PHASE = {
     DONE: 'done'               // Bottle floating away
 };
 
-const ContactRoom = ({ showRoom, onReady, isExiting }) => {
+const ContactRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
     const { camera } = useThree();
     const { isTeleporting } = useScene();
     const { showTutorial, unlockAchievement, hidePopup } = useAchievements();
@@ -250,7 +250,7 @@ const ContactRoom = ({ showRoom, onReady, isExiting }) => {
             if (frameCount.current >= FRAMES_TO_WAIT) {
                 hasSignaledReady.current = true;
                 onReady?.();
-                setTimeout(() => showTutorial('contact_submit'), 2000);
+                if (!isWarmup) setTimeout(() => showTutorial('contact_submit'), 2000);
             }
         }
 

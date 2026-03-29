@@ -68,22 +68,22 @@ const RoomWarmup = ({ onWarmupComplete }) => {
             {/* Mount all rooms in Suspense - positioned far below camera */}
             <Suspense fallback={null}>
                 <group position={[-20, 0, 0]}>
-                    <GalleryRoom showRoom={true} onReady={noop} isExiting={false} />
+                    <GalleryRoom showRoom={true} onReady={noop} isExiting={false} isWarmup={true} />
                 </group>
             </Suspense>
             <Suspense fallback={null}>
                 <group position={[20, 0, 0]}>
-                    <StudioRoom showRoom={true} onReady={noop} isExiting={false} />
+                    <StudioRoom showRoom={true} onReady={noop} isExiting={false} isWarmup={true} />
                 </group>
             </Suspense>
             <Suspense fallback={null}>
                 <group position={[-20, 0, -50]}>
-                    <AboutRoom showRoom={true} onReady={noop} isExiting={false} />
+                    <AboutRoom showRoom={true} onReady={noop} isExiting={false} isWarmup={true} />
                 </group>
             </Suspense>
             <Suspense fallback={null}>
                 <group position={[20, 0, -50]}>
-                    <ContactRoom showRoom={true} onReady={noop} isExiting={false} />
+                    <ContactRoom showRoom={true} onReady={noop} isExiting={false} isWarmup={true} />
                 </group>
             </Suspense>
         </group>

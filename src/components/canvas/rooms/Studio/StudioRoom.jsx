@@ -36,7 +36,7 @@ const VERTICAL_SPACING = 2.5; // Space between monitor rings
 const TOWER_Y_START = -5; // Starting Y offset for tower (negative = lower) -> CONTROLS HEIGHT (UP/DOWN)
 const TOWER_Z_START = -10; // Starting Z position (negative = further away) -> CONTROLS DISTANCE
 
-const StudioRoom = ({ showRoom, onReady, isExiting }) => {
+const StudioRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
     const groupRef = useRef();
     const towerRef = useRef();
     const { camera, size } = useThree();
@@ -131,7 +131,7 @@ const StudioRoom = ({ showRoom, onReady, isExiting }) => {
         if (frameCount.current >= FRAMES_TO_WAIT) {
             hasSignaledReady.current = true;
             onReady?.();
-            setTimeout(() => showTutorial('studio_interact'), 2000);
+            if (!isWarmup) setTimeout(() => showTutorial('studio_interact'), 2000);
         }
     });
 

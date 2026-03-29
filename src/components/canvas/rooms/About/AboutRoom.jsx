@@ -31,7 +31,7 @@ const STORY_MILESTONES = [
     { id: 'skills', position: [0, 0, -135], type: 'skills', title: 'SKILLS', subtitle: 'React • Three.js • GSAP • Creative Code' },
 ];
 
-const AboutRoom = ({ showRoom, onReady, isExiting }) => {
+const AboutRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
     const { camera } = useThree();
     const { isTeleporting, overlayContent } = useScene();
     const { showTutorial, unlockAchievement, hidePopup } = useAchievements();
@@ -114,7 +114,7 @@ const AboutRoom = ({ showRoom, onReady, isExiting }) => {
                 onReady?.();
                 // trigger achievement hint when showing the room
                 if (!isTeleporting && !isExiting) {
-                    setTimeout(() => showTutorial('about_fly'), 2000);
+                    if (!isWarmup) setTimeout(() => showTutorial('about_fly'), 2000);
                 }
             }
         }

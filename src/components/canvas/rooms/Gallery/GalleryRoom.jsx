@@ -84,7 +84,7 @@ const BIRD_HEIGHT = 0.35; // Mniejsze = bardziej "spłaszczony" / rozciągnięty
 // 0.2 = 20% crop from the right (corridor side)
 const RIGHT_CROP_AMOUNT = 0.2;
 
-const GalleryRoom = ({ showRoom, onReady, isExiting }) => {
+const GalleryRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
     const { openOverlay, isTeleporting } = useScene();
     const { showTutorial, unlockAchievement, hidePopup } = useAchievements();
     const { globalVolume, isMuted } = useAudio();
@@ -151,7 +151,7 @@ const GalleryRoom = ({ showRoom, onReady, isExiting }) => {
 
             // Wait for the DoorSection 1.5s camera fly-in to finish before showing tutorial
             setTimeout(() => {
-                showTutorial('gallery_inspect');
+                if (!isWarmup) showTutorial('gallery_inspect');
             }, 2000);
         }
     });
