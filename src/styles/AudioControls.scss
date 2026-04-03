@@ -33,12 +33,13 @@
     // Custom Range Input Styling
     input[type=range] {
         -webkit-appearance: none;
+        appearance: none;
         /* Hides the slider so that custom slider can be made */
         width: 100%;
         /* Specific width is required for Firefox. */
         background: transparent;
         /* Otherwise white in Chrome */
-        cursor: url('/cursors/cursor-pointer.webp'), pointer;
+        cursor: pointer;
 
         &:focus {
             outline: none;
@@ -48,7 +49,7 @@
         &::-webkit-slider-runnable-track {
             width: 100%;
             height: 3px;
-            cursor: url('/cursors/cursor-pointer.webp'), pointer;
+            cursor: pointer;
             background: #1a1a1a;
             border-radius: 2px;
             // Make it look slightly imperfect/drawn
@@ -59,7 +60,7 @@
         &::-moz-range-track {
             width: 100%;
             height: 3px;
-            cursor: url('/cursors/cursor-pointer.webp'), pointer;
+            cursor: pointer;
             background: #1a1a1a;
             border-radius: 2px;
         }
@@ -71,7 +72,7 @@
             width: 14px;
             border-radius: 50%;
             background: #1a1a1a;
-            cursor: url('/cursors/cursor-pointer.webp'), pointer;
+            cursor: pointer;
             margin-top: -6px;
             /* You need to specify a margin in Chrome, but in Firefox and IE it is automatic */
             box-shadow: 0 0 0 2px #fafafa; // White outline to separate from track
@@ -88,7 +89,7 @@
             border: none;
             border-radius: 50%;
             background: #1a1a1a;
-            cursor: url('/cursors/cursor-pointer.webp'), pointer;
+            cursor: pointer;
             box-shadow: 0 0 0 2px #fafafa;
             transition: transform 0.1s;
 
@@ -102,7 +103,7 @@
     .mute-btn {
         background: none;
         border: none;
-        cursor: url('/cursors/cursor-pointer.webp'), pointer;
+        cursor: pointer;
         padding: 5px;
         display: flex;
         align-items: center;

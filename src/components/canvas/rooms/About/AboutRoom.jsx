@@ -235,16 +235,18 @@ const AboutRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
 
     return (
         <group ref={roomRef} position={[0, 0, -25]}>
-            <PositionalAudio
-                ref={audioRef}
-                url="/sounds/szumwiatru.mp3"
-                distanceModel="exponential"
-                refDistance={AUDIO_SETTINGS.distance}
-                rolloffFactor={AUDIO_SETTINGS.rolloff}
-                loop
-                autoplay
-                volume={effectiveVolume}
-            />
+            {!isWarmup && (
+                <PositionalAudio
+                    ref={audioRef}
+                    url="/sounds/szumwiatru.mp3"
+                    distanceModel="exponential"
+                    refDistance={AUDIO_SETTINGS.distance}
+                    rolloffFactor={AUDIO_SETTINGS.rolloff}
+                    loop
+                    autoplay
+                    volume={effectiveVolume}
+                />
+            )}
 
             {/* === PAPER AIRPLANE (follows camera maneuvers) === */}
             <group ref={airplaneGroupRef} position={[0, -0.3, 1]}>

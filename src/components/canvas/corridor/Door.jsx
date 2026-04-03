@@ -32,12 +32,12 @@ const Door = ({
 }) => {
     // Preload textures
     // Texture Loader Hook MUST be called indiscriminately to keep React Hooks consistent
-    const textureMap = useTexture(`/ textures / corridor / doors / drzwi${type}.webp`);
+    const textureMap = useTexture(`/textures/corridor/doors/drzwi${type}.webp`);
     const isTouch = isTouchDevice();
     const dummyTex = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-    const paintedColorMap = useTexture(isTouch ? dummyTex : `/ textures / corridor / doors / drzwi${type} _painted.webp`);
+    const paintedColorMap = useTexture(isTouch ? dummyTex : `/textures/corridor/doors/drzwi${type}_painted.webp`);
     // Frame
-    const frameMap = useTexture(`/ textures / corridor / doors / ramkasingledoors.webp`);
+    const frameMap = useTexture(`/textures/corridor/doors/ramkasingledoors.webp`);
 
     const doorRef = useRef();
     const frameRef = useRef();
@@ -105,7 +105,7 @@ const Door = ({
         isOpenRef.current = true;
         const openAngle = side === 'left' ? Math.PI * 0.6 : -Math.PI * 0.6;
 
-        console.log("[Door] Opening door, playing sound");
+        // console.log("[Door] Opening door, playing sound");
         // Play the door opening sound exactly when the animation starts
         if (openAudioRef.current) {
             const vol = isMuted ? 0 : ENTRANCE_DOOR_AUDIO_SETTINGS.openVolume * globalVolume;
@@ -257,13 +257,17 @@ const Door = ({
                     onPointerEnter={(e) => {
                         e.stopPropagation();
                         if (!isHoveredRef.current && !isOpenRef.current) {
-                            console.log("[Door] Hovering door, playing sound");
+                            // console.log("[Door] Hovering door, playing sound");
 
                             if (hoverAudioRef.current && !isHoveredRef.current) {
                                 const vol = isMuted ? 0 : ENTRANCE_DOOR_AUDIO_SETTINGS.hoverVolume * globalVolume;
                                 hoverAudioRef.current.setVolume(vol);
+                                
+                                // Only play if AudioContext is already running to avoid console warnings
                                 if (hoverAudioRef.current.isPlaying) hoverAudioRef.current.stop();
-                                hoverAudioRef.current.play();
+                                if (hoverAudioRef.current.context.state === 'running') {
+                                    hoverAudioRef.current.play();
+                                }
                             }
                         }
                         isHoveredRef.current = true;

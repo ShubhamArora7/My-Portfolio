@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
+import { useRef, useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { useFrame, useThree, useLoader } from '@react-three/fiber';
 import * as THREE from 'three';
 import gsap from 'gsap';
@@ -11,6 +11,20 @@ import { PositionalAudio } from '@react-three/drei';
 import { useAudio } from '../../../../context/AudioManager';
 import '../../shaders/RevealMaterial';
 import { isTouchDevice } from '../../../../utils/deviceDetect';
+import { usePaintMaterial } from '../Gallery/usePaintMaterial';
+
+// ============================================
+// ⚙️ PAINT CONFIGURATION - TWEAK HERE (Skąd-Dokąd)
+// Edytuj te wartości, aby zmienić kierunek i zakres animacji wejścia
+// ============================================
+const STUDIO_PAINT_CONFIG = {
+    dirX: 0.0,
+    dirY: -1.0,    // Kierunek: od góry (-1) do dołu
+    dirZ: 0.0,
+    startDist: -10.0, // Początek fali
+    endDist: 10.0,   // Koniec fali
+    noiseAxes: 'xz'  // Płaszczyzna szumu
+};
 
 // ============================================
 // ⚙️ AUDIO SETTINGS - TWEAK HERE
@@ -105,6 +119,34 @@ const StudioRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
         }
     }, [isExiting, isTeleporting, hidePopup]);
 
+    // ===== PAINT TRANSITION (top-to-bottom) =====
+    const { onBeforeCompile: paintOnBeforeCompile, animatePaint, resetPaint, uniformsData: paintUniforms, updateRoomOrigin } = usePaintMaterial(STUDIO_PAINT_CONFIG);
+
+    const [isTransitioning, setIsTransitioning] = useState(false);
+
+    const wasTeleportedRef = useRef(false);
+    useEffect(() => {
+        if (isTeleporting) wasTeleportedRef.current = true;
+    }, [isTeleporting]);
+
+    useEffect(() => {
+        if (showRoom && !isWarmup) {
+            if (wasTeleportedRef.current || isTeleporting) {
+                paintUniforms.uPaintProgress.value = 1.0;
+                setIsTransitioning(false);
+            } else {
+                setIsTransitioning(true);
+                resetPaint();
+                animatePaint(0.2, 2.5);
+                setTimeout(() => {
+                    setIsTransitioning(false);
+                }, 2700);
+            }
+        } else {
+            paintUniforms.uPaintProgress.value = 1.0;
+        }
+    }, [showRoom, isWarmup, isTeleporting]);
+
     const latestContent = getLatestContent();
 
     // Monitor Y offsets for falling animation (mutable)
@@ -123,6 +165,9 @@ const StudioRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
 
     // Real render-based ready detection - count actual rendered frames
     useFrame(() => {
+        // Update room origin for paint shader
+        updateRoomOrigin(groupRef);
+
         if (hasSignaledReady.current) return;
 
         frameCount.current++;
@@ -480,16 +525,18 @@ const StudioRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
 
     return (
         <group ref={groupRef} position={[0, -1.2, 0]}>
-            <PositionalAudio
-                ref={audioRef}
-                url="/sounds/szummonitorow.mp3"
-                distanceModel="exponential"
-                refDistance={AUDIO_SETTINGS.distance}
-                rolloffFactor={AUDIO_SETTINGS.rolloff}
-                loop
-                autoplay
-                volume={effectiveVolume}
-            />
+            {!isWarmup && (
+                <PositionalAudio
+                    ref={audioRef}
+                    url="/sounds/szummonitorow.mp3"
+                    distanceModel="exponential"
+                    refDistance={AUDIO_SETTINGS.distance}
+                    rolloffFactor={AUDIO_SETTINGS.rolloff}
+                    loop
+                    autoplay
+                    volume={effectiveVolume}
+                />
+            )}
 
             {/* THE INFINITE TOWER */}
             <group
@@ -510,8 +557,10 @@ const StudioRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
                         index={index}
                         meshRef={(el) => { monitorRefs.current[index] = el; }}
                         isSelected={selectedMonitor?.id === item.id}
-                        onClick={() => handleMonitorClick(item)}
+                        onMonitorClick={handleMonitorClick}
                         disabled={isAnimating}
+                        paintOnBeforeCompile={paintOnBeforeCompile}
+                        paintUniforms={paintUniforms}
                     />
                 ))}
             </group>
@@ -529,7 +578,7 @@ const StudioRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
 // MONITOR BLOCK COMPONENT - with Paint Reveal on Hover
 // Uses proven two-box approach: painted box behind + sketch box with revealMaterial in front
 // ===========================================
-const MonitorBlock = ({ item, meshRef, isSelected, onClick, disabled }) => {
+const MonitorBlock = memo(({ item, meshRef, isSelected, onMonitorClick, disabled, paintOnBeforeCompile, paintUniforms }) => {
     // Position.y is updated directly by parent's useFrame via meshRef
     const paintedBoxRef = useRef();
     const hideDelayRef = useRef();
@@ -575,6 +624,8 @@ const MonitorBlock = ({ item, meshRef, isSelected, onClick, disabled }) => {
     const monitorBottom = useLoader(TextureLoader, '/textures/studio/monitor_bottom.webp');
     const monitorLeft = useLoader(TextureLoader, '/textures/studio/monitor_left.webp');
     const monitorRight = useLoader(TextureLoader, '/textures/studio/monitor_right.webp');
+    const monitorBackPainted = useLoader(TextureLoader, isTouch ? dummyTex : '/textures/studio/monitor_back_painted.webp');
+    const monitorTopPainted = useLoader(TextureLoader, isTouch ? dummyTex : '/textures/studio/monitor_top_painted.webp');
     const monitorBottomPainted = useLoader(TextureLoader, isTouch ? dummyTex : '/textures/studio/monitor_bottom_painted.webp');
     const monitorLeftPainted = useLoader(TextureLoader, isTouch ? dummyTex : '/textures/studio/monitor_left_painted.webp');
     const monitorRightPainted = useLoader(TextureLoader, isTouch ? dummyTex : '/textures/studio/monitor_right_painted.webp');
@@ -602,10 +653,10 @@ const MonitorBlock = ({ item, meshRef, isSelected, onClick, disabled }) => {
             return [
                 { sketch: monitorRight, painted: monitorRightPainted },    // +X
                 { sketch: monitorLeft, painted: monitorLeftPainted },      // -X
-                { sketch: monitorTop, painted: null },                     // +Y (no painted)
+                { sketch: monitorTop, painted: monitorTopPainted },        // +Y
                 { sketch: monitorBottom, painted: monitorBottomPainted },  // -Y
                 { sketch: frontTex, painted: frontPaintedTex },            // +Z front
-                { sketch: monitorBack, painted: null },                    // -Z (no painted)
+                { sketch: monitorBack, painted: monitorBackPainted },      // -Z
             ];
         } else if (isTvMonitor) {
             return [
@@ -631,7 +682,7 @@ const MonitorBlock = ({ item, meshRef, isSelected, onClick, disabled }) => {
         isBlogMonitor, isTvMonitor, isPhoneMonitor,
         frontTex, frontPaintedTex,
         monitorBack, monitorTop, monitorBottom, monitorLeft, monitorRight,
-        monitorBottomPainted, monitorLeftPainted, monitorRightPainted,
+        monitorBackPainted, monitorTopPainted, monitorBottomPainted, monitorLeftPainted, monitorRightPainted,
         tvBack, tvTop, tvBottom, tvSide,
         tvBackPainted, tvTopPainted, tvBottomPainted, tvSidePainted,
         phoneBack, phoneSide, phoneBackPainted, phoneSidePainted
@@ -640,21 +691,38 @@ const MonitorBlock = ({ item, meshRef, isSelected, onClick, disabled }) => {
     // Painted materials for inner box (standard materials showing painted textures)
     const paintedMaterials = useMemo(() => {
         if (!faceConfig) return null;
-        return faceConfig.map(f =>
-            new THREE.MeshBasicMaterial({
+        return faceConfig.map(f => {
+            const mat = new THREE.MeshBasicMaterial({
                 color: '#e0e0e0',
                 map: f.painted || f.sketch // Use sketch as fallback if no painted version
-            })
-        );
-    }, [faceConfig]);
+            });
+            // Apply paint transition shader
+            if (paintOnBeforeCompile) {
+                mat.onBeforeCompile = paintOnBeforeCompile;
+                mat.customProgramCacheKey = () => 'paintOnBeforeCompile_studio_painted';
+                mat.transparent = true;
+                mat.needsUpdate = true;
+            }
+            return mat;
+        });
+    }, [faceConfig, paintOnBeforeCompile]);
 
     // Sketch materials for outer box (standard materials, used for faces WITHOUT reveal)
     const sketchMaterials = useMemo(() => {
         if (!faceConfig) return null;
-        return faceConfig.map(f =>
-            f.painted ? null : new THREE.MeshBasicMaterial({ color: '#e0e0e0', map: f.sketch })
-        );
-    }, [faceConfig]);
+        return faceConfig.map(f => {
+            if (f.painted) return null; // Will use revealMaterial instead
+            const mat = new THREE.MeshBasicMaterial({ color: '#e0e0e0', map: f.sketch });
+            // Apply paint transition shader
+            if (paintOnBeforeCompile) {
+                mat.onBeforeCompile = paintOnBeforeCompile;
+                mat.customProgramCacheKey = () => 'paintOnBeforeCompile_studio_sketch';
+                mat.transparent = true;
+                mat.needsUpdate = true;
+            }
+            return mat;
+        });
+    }, [faceConfig, paintOnBeforeCompile]);
 
     // --- HOVER STATE MANAGEMENT (NO REACT RE-RENDERS!) ---
     const isHoveredRef = useRef(false);
@@ -729,7 +797,7 @@ const MonitorBlock = ({ item, meshRef, isSelected, onClick, disabled }) => {
             onPointerUp={(e) => {
                 if (disabled) return;
                 e.stopPropagation();
-                onClick();
+                onMonitorClick(item);
             }}
         >
             {/* PAINTED BOX (behind) — initially visible to force shader compilation during loading phase */}
@@ -752,7 +820,10 @@ const MonitorBlock = ({ item, meshRef, isSelected, onClick, disabled }) => {
                                 ref={matRefs[i]}
                                 attach={`material-${i}`}
                                 map={face.sketch}
-
+                                transparent={true}
+                                alphaTest={0.1}
+                                paintUniforms={paintUniforms}
+                                paintConfig={STUDIO_PAINT_CONFIG}
                                 uProgress={0.0}
                             />
                         );
@@ -766,7 +837,7 @@ const MonitorBlock = ({ item, meshRef, isSelected, onClick, disabled }) => {
             </mesh>
         </group>
     );
-};
+});
 
 export default StudioRoom;
 

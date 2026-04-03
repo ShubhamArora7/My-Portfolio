@@ -6,6 +6,7 @@ import gsap from 'gsap';
 import SkyChunk, { CHUNK_LENGTH, ROOM_Z } from './SkyChunk';
 import { useScene } from '../../../../context/SceneContext';
 import '../../shaders/RevealBasicMaterial'; // Registers brush-stroke reveal for BasicMaterial
+import { isTouchDevice } from '../../../../utils/deviceDetect';
 
 // Reusable Vector3 to avoid allocations in event handlers
 const _tempVec3 = new THREE.Vector3();
@@ -30,8 +31,7 @@ export const BALLOON_AUDIO_SETTINGS = {
  * Reusable Button Component with Hover Effect + Brush-Stroke Reveal
  */
 const AwardButton = ({ onClick, texture, paintedTexture, width, height, position, onHoverChange }) => {
-    const { viewport } = useThree();
-    const isMobile = viewport.width < 8;
+    const isTouch = isTouchDevice();
     const meshRef = useRef();
     const buttonRevealRef = useRef(); // RevealBasicMaterial ref for button sketch
     const paintedRef = useRef(); // Painted button mesh visibility
@@ -51,7 +51,7 @@ const AwardButton = ({ onClick, texture, paintedTexture, width, height, position
     });
 
     const handlePointerOver = () => {
-        if (isMobile) return;
+        if (isTouch) return;
         setHovered(true);
         document.body.style.cursor = 'pointer';
         onHoverChange?.(true);
@@ -73,7 +73,7 @@ const AwardButton = ({ onClick, texture, paintedTexture, width, height, position
     };
 
     const handlePointerOut = () => {
-        if (isMobile) return;
+        if (isTouch) return;
         setHovered(false);
         document.body.style.cursor = 'auto';
         onHoverChange?.(false);
@@ -260,7 +260,7 @@ const IntroMilestone = ({ z, scrollProgressRef }) => {
     // Load avatar texture
     const avatarTexture = useLoader(THREE.TextureLoader, '/textures/about/awatarnachmurce.webp');
     const { camera, viewport } = useThree();
-    const isMobile = viewport.width < 8;
+    const isTouch = isTouchDevice();
 
     // Refs for all animated elements
     const groupRef = useRef();
@@ -475,7 +475,7 @@ const AWARDS_DATA = {
  */
 const AwardsMilestone = ({ z, scrollProgressRef }) => {
     const { camera, viewport } = useThree();
-    const isMobile = viewport.width < 8;
+    const isTouch = isTouchDevice();
     const { openOverlay } = useScene();
     const groupRef = useRef();
     const sotyRef = useRef();
@@ -497,11 +497,11 @@ const AwardsMilestone = ({ z, scrollProgressRef }) => {
     const sotyTexture = useLoader(THREE.TextureLoader, '/textures/about/SOTY.webp');
     const sotdTexture = useLoader(THREE.TextureLoader, '/textures/about/SOTD.webp');
     const sotmTexture = useLoader(THREE.TextureLoader, '/textures/about/SOTM.webp');
-    const sotyPaintedTexture = useLoader(THREE.TextureLoader, isMobile ? '/textures/about/SOTY.webp' : '/textures/about/SOTY_painted.webp');
-    const sotdPaintedTexture = useLoader(THREE.TextureLoader, isMobile ? '/textures/about/SOTD.webp' : '/textures/about/SOTD_painted.webp');
-    const sotmPaintedTexture = useLoader(THREE.TextureLoader, isMobile ? '/textures/about/SOTM.webp' : '/textures/about/SOTM_painted.webp');
+    const sotyPaintedTexture = useLoader(THREE.TextureLoader, isTouch ? '/textures/about/SOTY.webp' : '/textures/about/SOTY_painted.webp');
+    const sotdPaintedTexture = useLoader(THREE.TextureLoader, isTouch ? '/textures/about/SOTD.webp' : '/textures/about/SOTD_painted.webp');
+    const sotmPaintedTexture = useLoader(THREE.TextureLoader, isTouch ? '/textures/about/SOTM.webp' : '/textures/about/SOTM_painted.webp');
     const buttonTexture = useLoader(THREE.TextureLoader, '/textures/about/button.webp');
-    const buttonPaintedTexture = useLoader(THREE.TextureLoader, isMobile ? '/textures/about/button.webp' : '/textures/about/button_painted.webp');
+    const buttonPaintedTexture = useLoader(THREE.TextureLoader, isTouch ? '/textures/about/button.webp' : '/textures/about/button_painted.webp');
 
     // Color space fix
     sotyTexture.colorSpace = THREE.SRGBColorSpace;
@@ -528,7 +528,7 @@ const AwardsMilestone = ({ z, scrollProgressRef }) => {
 
     // Card hover handler factory
     const makeCardHoverHandler = (revealRef, paintedRef, hideDelayRef) => (isHovered) => {
-        if (isMobile) return;
+        if (isTouch) return;
         if (isHovered) {
             if (revealRef.current) {
                 gsap.to(revealRef.current, {
@@ -813,7 +813,7 @@ const AwardsMilestone = ({ z, scrollProgressRef }) => {
  */
 const JourneyMilestone = ({ z, scrollProgressRef }) => {
     const { camera, viewport } = useThree();
-    const isMobile = viewport.width < 8;
+    const isTouch = isTouchDevice();
     const groupRef = useRef();
     const uoRef = useRef();
     const freelanceRef = useRef();
@@ -997,9 +997,9 @@ const SIZE_MULTIPLIERS = {
 // Individual balloon component
 const SkillBalloon = ({ config, revealFactorRef, spreadFactorRef, timeRef }) => {
     const { viewport } = useThree();
-    const isMobileViewport = viewport.width < 8; // Local const for texture loading before state
+    const isTouch = isTouchDevice();
     const texture = useLoader(THREE.TextureLoader, config.texture);
-    const paintedTextureUrl = isMobileViewport ? config.texture : config.paintedTexture;
+    const paintedTextureUrl = isTouch ? config.texture : config.paintedTexture;
     const paintedTexture = useLoader(THREE.TextureLoader, paintedTextureUrl);
     texture.colorSpace = THREE.SRGBColorSpace;
     paintedTexture.colorSpace = THREE.SRGBColorSpace;
@@ -1051,10 +1051,9 @@ const SkillBalloon = ({ config, revealFactorRef, spreadFactorRef, timeRef }) => 
 
     // === RESPONSYWNOŚĆ ===
     // Na mobile (wąski viewport) balony są bliżej środka
-    const isMobile = viewport.width < 8;
-    const positionScale = isMobile ? 0.5 : 1; // Jak bardzo ściskamy pozycje na mobile
-    const spreadScale = isMobile ? 0.4 : 1;   // Jak bardzo zmniejszamy spread na mobile
-    const sizeScale = isMobile ? 0.85 : 1;    // Trochę mniejsze balony na mobile
+    const positionScale = isTouch ? 0.5 : 1; // Jak bardzo ściskamy pozycje na mobile
+    const spreadScale = isTouch ? 0.4 : 1;   // Jak bardzo zmniejszamy spread na mobile
+    const sizeScale = isTouch ? 0.85 : 1;    // Trochę mniejsze balony na mobile
 
     // Cursor handling
     useEffect(() => {
@@ -1078,7 +1077,7 @@ const SkillBalloon = ({ config, revealFactorRef, spreadFactorRef, timeRef }) => 
 
     // Hover handlers for brush-stroke reveal
     const handlePointerOver = (e) => {
-        if (isMobile) return;
+        if (isTouch) return;
         e.stopPropagation();
         if (!isPopping) setHovered(true);
 
@@ -1097,7 +1096,7 @@ const SkillBalloon = ({ config, revealFactorRef, spreadFactorRef, timeRef }) => 
     };
 
     const handlePointerOut = (e) => {
-        if (isMobile) return;
+        if (isTouch) return;
         e.stopPropagation();
         setHovered(false);
 
@@ -1329,7 +1328,7 @@ const SkillBalloon = ({ config, revealFactorRef, spreadFactorRef, timeRef }) => 
 
 const SkillsMilestone = ({ z, scrollProgressRef }) => {
     const { camera, viewport } = useThree();
-    const isMobile = viewport.width < 8;
+    const isTouch = isTouchDevice();
     const groupRef = useRef();
     // P2: Use refs instead of state to avoid 60 re-renders/sec inside useFrame
     const revealFactorRef = useRef(0);

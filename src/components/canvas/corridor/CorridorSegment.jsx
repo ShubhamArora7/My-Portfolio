@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, memo } from 'react';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 
@@ -184,5 +184,7 @@ const CorridorSegment = ({
     );
 };
 
+const MemoizedCorridorSegment = memo(CorridorSegment);
+
 export { SEGMENT_LENGTH, WALL_X_OUTER, WALL_X_INNER, DOOR_Z_SPAN };
-export default CorridorSegment;
+export default MemoizedCorridorSegment;

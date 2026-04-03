@@ -33,7 +33,7 @@ body,
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
-  cursor: url('/cursors/cursor-default.webp'), auto;
+  cursor: auto;
 }
 
 #root {
@@ -44,7 +44,7 @@ body,
 a,
 button,
 .pointer {
-  cursor: url('/cursors/cursor-pointer.webp'), pointer;
+  cursor: pointer;
 }
 
 h1 {

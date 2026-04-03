@@ -53,9 +53,15 @@ export const AchievementsProvider = ({ children }) => {
             const ctx = audioCtxRef.current;
 
             // Resume context if suspended (browser auto-play policy)
+            // Note: This might still fail if not called directly from a click event,
+            // but we wrap it in a try/catch and silent fail for Awwwards.
             if (ctx.state === 'suspended') {
-                ctx.resume();
+                ctx.resume().catch(() => {
+                    // Silently fail if still blocked by policy
+                });
             }
+
+            if (ctx.state !== 'running') return;
 
             const gain = ctx.createGain();
             const osc = ctx.createOscillator();
@@ -75,11 +81,11 @@ export const AchievementsProvider = ({ children }) => {
             gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.15);
             gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
 
-            // Muting sound for now per user request
+            // Audio is muted by start/stop being commented out, but we still ensure context logic is clean
             // osc.start(ctx.currentTime);
             // osc.stop(ctx.currentTime + 0.5);
         } catch (err) {
-            console.warn('Failed to play unlock chime', err);
+            // console.warn('Failed to play unlock chime', err);
         }
     }, []);
 

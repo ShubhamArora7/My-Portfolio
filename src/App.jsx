@@ -33,26 +33,44 @@ import {
   CORRIDOR_TEXTURES, 
   UI_TEXTURES,
   PRELOAD_ALL, 
-  PRELOAD_LOADER 
+  PRELOAD_LOADER,
+  ABOUT_TEXTURES,
+  IMAGE_ASSETS,
+  filterTexturesByDevice
 } from './config/texturePreloadList';
 import { TextureLoader } from 'three';
 
-const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '');
+// Standard Browser-level Image Preloader (for <img> tags)
+const preloadBrowserImage = (path) => {
+  if (typeof window === 'undefined') return;
+  const img = new Image();
+  img.src = path;
+};
+
+const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '');
 const isWeakCPU = typeof navigator.hardwareConcurrency !== 'undefined' && navigator.hardwareConcurrency <= 4;
 const isLowRAM = typeof navigator.deviceMemory !== 'undefined' && navigator.deviceMemory <= 4;
 const isSmallScreen = typeof window !== 'undefined' && window.innerWidth < 450;
-const isLowEnd = isMobile || isWeakCPU || isLowRAM || isSmallScreen;
+const isLowEnd = isMobileDevice || isWeakCPU || isLowRAM || isSmallScreen;
 
+// Refined check for "hover capability" (non-touch devices should have hover: hover)
+// Laptops with touch screens (which also have a mouse/trackpad) will return true here.
+const supportsHover = typeof window !== 'undefined' && window.matchMedia('(hover: hover)').matches;
+
+// Trigger Three.js preloads at module level (as standard for Drei)
 if (isLowEnd) {
-  // Only preload the immediate path to prevent memory crashes on phones
-  const CORE_TEXTURES = [...ENTRANCE_TEXTURES, ...CORRIDOR_TEXTURES, ...UI_TEXTURES];
-  CORE_TEXTURES.forEach(path => useTexture.preload(path));
-  console.log('[Preload] Low-end device detected. Preloading CORE textures only.');
+  const CORE_TEXTURES = [...ENTRANCE_TEXTURES, ...CORRIDOR_TEXTURES, ...UI_TEXTURES, ...IMAGE_ASSETS];
+  const filteredCore = filterTexturesByDevice(CORE_TEXTURES, supportsHover);
+  const filteredAbout = filterTexturesByDevice(ABOUT_TEXTURES, supportsHover);
+
+  filteredCore.forEach(path => useTexture.preload(path));
+  filteredAbout.forEach(path => useLoader.preload(TextureLoader, path));
 } else {
-  // Preload everything on desktop/high-end
-  PRELOAD_ALL.forEach(path => useTexture.preload(path));
-  PRELOAD_LOADER.forEach(path => useLoader.preload(TextureLoader, path));
-  console.log('[Preload] High-end device detected. Preloading ALL textures.');
+  const filteredAll = filterTexturesByDevice(PRELOAD_ALL, supportsHover);
+  const filteredLoader = filterTexturesByDevice(PRELOAD_LOADER, supportsHover);
+  
+  filteredAll.forEach(path => useTexture.preload(path));
+  filteredLoader.forEach(path => useLoader.preload(TextureLoader, path));
 }
 
 const FONT_URL = 'https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hjp-Ek-_EeA.woff';
@@ -181,6 +199,14 @@ function AppContent() {
 import { AchievementsProvider } from './context/AchievementsContext';
 
 export default function App() {
+  // Preload browser-based images (for standard <img> tags) immediately upon mounting App
+  // This ensures they are in the network waterfall during the initial loading phase.
+  useEffect(() => {
+    const filteredImages = filterTexturesByDevice(IMAGE_ASSETS, supportsHover);
+    // console.log(`[Preload] Triggering browser-level image preloads for ${filteredImages.length} assets.`);
+    filteredImages.forEach(path => preloadBrowserImage(path));
+  }, []);
+
   return (
     <PerformanceProvider>
       <AchievementsProvider>

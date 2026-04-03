@@ -29,7 +29,6 @@ export const ENTRANCE_TEXTURES = [
     '/textures/entrance/bug_sketch.webp',
     '/textures/entrance/speech_bubble.webp',
     // Images
-    '/images/avatar-happy.webp',
     '/images/ink-splash.webp',
 ];
 
@@ -39,7 +38,6 @@ export const CORRIDOR_TEXTURES = [
     '/textures/corridor/wall_texture.webp',
     '/textures/corridor/kawalekpodlogi.webp',
     '/textures/corridor/texturadoprogow.webp',
-    '/textures/corridor/ramka na zdjecie.webp',
     '/textures/corridor/texturadrewnadonozekbiurka.webp',
     '/textures/corridor/ceiling_texture.webp',
     '/textures/paper-texture.webp',
@@ -93,10 +91,22 @@ export const CORRIDOR_TEXTURES = [
     '/textures/corridor/doors/klamkadodrzwi_painted.webp',
 ];
 
-// Additional textures from App.jsx and avatar animations
-export const UI_TEXTURES = [
+// Standard HTML Image assets (preloaded via new Image() in App.jsx)
+export const IMAGE_ASSETS = [
     '/images/avatar-thinking.webp',
     '/images/avatar-hero.webp',
+    '/images/ink-splash.webp',
+    '/images/map.webp',
+    '/images/map_about_painted.webp',
+    '/images/map_contact_painted.webp',
+    '/images/map_gallery_painted.webp',
+    '/images/map_studio_painted.webp',
+    '/images/pin.webp',
+    '/images/pin-slot.webp',
+];
+
+// Additional textures from App.jsx and avatar animations
+export const UI_TEXTURES = [
     '/textures/corridor/avatar_anim/1.webp',
     '/textures/corridor/avatar_anim/2.webp',
     '/textures/corridor/avatar_anim/3.webp',
@@ -113,33 +123,8 @@ export const UI_TEXTURES = [
 // ============================================
 
 // Gallery Room textures (loaded via useTexture / drei)
-export const GALLERY_TEXTURES = [
-    // Project cards
-    '/textures/gallery/monetuneprzod.webp',
-    '/textures/gallery/monetuneprzod_painted.webp',
-    '/textures/gallery/timberkittyprzod.webp',
-    '/textures/gallery/timberkittyprzod_painted.webp',
-    '/textures/gallery/youngmultiprzod.webp',
-    '/textures/gallery/youngmultiprzod_painted.webp',
-    '/textures/gallery/bioprzod.webp',
-    '/textures/gallery/bioprzod_painted.webp',
-    // Card back
-    '/textures/gallery/tylkartki.webp',
-    '/textures/gallery/tylkartki_painted.webp',
-    '/textures/gallery/przyciskdotylukartki.webp',
-    '/textures/gallery/przyciskdotylukartki_painted.webp',
-    // Tech stack logos
-    '/textures/gallery/csslogo.webp',
-    '/textures/gallery/elementorlogo.webp',
-    '/textures/gallery/firebaselogo.webp',
-    '/textures/gallery/htmllogo.webp',
-    '/textures/gallery/jslogo.webp',
-    '/textures/gallery/netlifylogo.webp',
-    '/textures/gallery/phplogo.webp',
-    '/textures/gallery/reactlogo.webp',
-    '/textures/gallery/tailwindlogo.webp',
-    '/textures/gallery/wordpresslogo.webp',
-    // Environment
+// These are organized to handle conditional painted vs standard versions
+export const GALLERY_TEXTURES_BASE = [
     '/textures/gallery/floor.webp',
     '/textures/gallery/railing.webp',
     '/textures/gallery/domki.webp',
@@ -147,6 +132,36 @@ export const GALLERY_TEXTURES = [
     '/textures/gallery/bird_gray.webp',
     '/textures/gallery/klamerka.webp',
     '/textures/gallery/openliveproject.webp',
+];
+
+export const GALLERY_TEXTURES_VERSIONED = [
+    // Project cards
+    'monetuneprzod',
+    'timberkittyprzod',
+    'youngmultiprzod',
+    'bioprzod',
+    // Card back
+    'tylkartki',
+    'przyciskdotylukartki',
+    // Tech stack logos
+    'csslogo',
+    'elementorlogo',
+    'firebaselogo',
+    'htmllogo',
+    'jslogo',
+    'netlifylogo',
+    'phplogo',
+    'reactlogo',
+    'tailwindlogo',
+    'wordpresslogo',
+];
+
+export const GALLERY_TEXTURES = [
+    ...GALLERY_TEXTURES_BASE,
+    ...GALLERY_TEXTURES_VERSIONED.flatMap(name => [
+        `/textures/gallery/${name}.webp`,
+        name === 'csslogo' ? `/textures/gallery/css3logo_painted.webp` : `/textures/gallery/${name}_painted.webp`
+    ])
 ];
 
 // Contact Room textures (loaded via useTexture / drei)
@@ -159,12 +174,6 @@ export const CONTACT_TEXTURES = [
     '/textures/contact/send_button.webp',
     '/textures/contact/beczka.webp',
     '/textures/contact/beczka_painted.webp',
-    // Social link textures
-    '/textures/contact/facebooklink.webp',
-    '/textures/contact/githublink.webp',
-    '/textures/contact/instagramlink.webp',
-    '/textures/contact/linkedinlink.webp',
-    '/textures/contact/maillink.webp',
 ];
 
 // About Room textures (loaded via useLoader(TextureLoader))
@@ -211,6 +220,15 @@ export const ABOUT_TEXTURES = [
     '/textures/about/figmamalybalon_painted.webp',
     '/textures/about/firebasemalybalon.webp',
     '/textures/about/firebasemalybalon_painted.webp',
+    // Clouds
+    '/textures/clouds/1131c3eb-dfae-423f-924b-ff39d8ccd6dc.webp',
+    '/textures/clouds/254b8ec8-d6f7-4275-956f-7bab65b2ce2d.webp',
+    '/textures/clouds/2cc88dd1-483c-466d-b07e-f8308c61ccbe.webp',
+    '/textures/clouds/5606fcc0-3252-447d-a58a-7bcbac73229a.webp',
+    '/textures/clouds/7882dc72-3d01-41fb-ac0e-d07b0184ebc1.webp',
+    '/textures/clouds/9b2ca72f-7bd0-473b-ba6e-dd9e0eb79d35.webp',
+    '/textures/clouds/c83293c6-d90c-4a32-8d9d-5ac9af7e2296.webp',
+    '/textures/clouds/f6e358bc-d27c-41dd-95f4-6787a835c41e.webp',
 ];
 
 // Studio Room textures (loaded via useLoader(TextureLoader))
@@ -219,7 +237,9 @@ export const STUDIO_TEXTURES = [
     '/textures/studio/monitor_front.webp',
     '/textures/studio/monitor_front_painted.webp',
     '/textures/studio/monitor_back.webp',
+    '/textures/studio/monitor_back_painted.webp',
     '/textures/studio/monitor_top.webp',
+    '/textures/studio/monitor_top_painted.webp',
     '/textures/studio/monitor_bottom.webp',
     '/textures/studio/monitor_bottom_painted.webp',
     '/textures/studio/monitor_left.webp',
@@ -266,10 +286,53 @@ export const PRELOAD_ALL = [
     ...UI_TEXTURES,
     ...GALLERY_TEXTURES,
     ...CONTACT_TEXTURES,
+    ...IMAGE_ASSETS,
 ];
+
 
 // Textures loaded via useLoader(TextureLoader) - about, studio
 export const PRELOAD_LOADER = [
     ...ABOUT_TEXTURES,
     ...STUDIO_TEXTURES,
 ];
+
+/**
+ * Filters the preload list based on whether the device supports hover (desktop) 
+ * or is a touch-only device (mobile/tablet).
+ * @param {string[]} list The list of texture paths to filter
+ * @param {boolean} usePainted Whether to prioritize _painted versions
+ * @returns {string[]} The filtered list
+ */
+export const filterTexturesByDevice = (list, usePainted) => {
+    // 1. Identify all paths that have a _painted version available
+    const paintedVersions = new Set(list.filter(p => p.includes('_painted.webp')));
+    
+    // Also include the special css3logo case
+    const hasCss3Painted = list.some(p => p.includes('css3logo_painted.webp'));
+    
+    return list.filter(path => {
+        const isPainted = path.includes('_painted.webp');
+        const isCss3 = path.includes('css3logo_painted.webp');
+        
+        // Find the "standard" version for this path if it's a painted one
+        let standardVersion = null;
+        if (isPainted) {
+            standardVersion = path.replace('_painted.webp', '.webp');
+        } else if (isCss3) {
+            standardVersion = path.replace('css3logo_painted.webp', 'csslogo.webp');
+        } else {
+            // Check if this standard path HAS a painted version in the list
+            const pVersion = path.replace('.webp', '_painted.webp');
+            const css3Version = path.replace('csslogo.webp', 'css3logo_painted.webp');
+            if (list.includes(pVersion) || (path.includes('csslogo.webp') && hasCss3Painted)) {
+                // Return true to keep the standard version! Both desktop and mobile need it.
+                return true; 
+            }
+            // If it doesn't have a painted version, it's a static texture (always keep)
+            return true;
+        }
+
+        // It's a painted version
+        return usePainted;
+    });
+};

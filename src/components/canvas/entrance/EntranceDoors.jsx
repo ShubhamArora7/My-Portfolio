@@ -76,7 +76,6 @@ const EntranceDoors = ({
     const catFrontBodyTexture = useTexture('/textures/entrance/cat_front_body.webp');
     const windowSketchTexture = useTexture('/textures/entrance/window_sketch.webp');
     const avatarWindowTexture = useTexture('/textures/entrance/avatar_window.webp');
-    const avatarTexture = useTexture('/images/avatar-happy.webp');
     const treeTexture = useTexture('/textures/entrance/tree_sketch.webp');
     const mouseTexture = useTexture('/textures/entrance/mouse_hanging.webp');
     const potTexture = useTexture('/textures/entrance/pot_with_duck.webp');
@@ -132,7 +131,7 @@ const EntranceDoors = ({
         }
 
         setIsBugClicked(true);
-        document.body.style.cursor = "url('/cursors/cursor-default.png'), auto";
+        document.body.style.cursor = "auto";
 
         // Animate ink splash scale up
         if (inkSplashRef.current) {
@@ -257,7 +256,7 @@ const EntranceDoors = ({
         if (isOpen || isAnimating) return;
 
         // Reset cursor immediately on transition start
-        document.body.style.cursor = "url('/cursors/cursor-default.png'), auto";
+        document.body.style.cursor = "auto";
 
         setIsOpen(true);
         setIsAnimating(true);
@@ -312,7 +311,7 @@ const EntranceDoors = ({
     const handlePointerEnter = () => {
         if (isOpen || isAnimating || isMobile) return;
         setIsHovered(true);
-        document.body.style.cursor = "url('/cursors/cursor-pointer.png'), pointer";
+        document.body.style.cursor = "pointer";
 
         // Slightly open doors on hover
         gsap.to(leftDoorRef.current.rotation, {
@@ -388,7 +387,7 @@ const EntranceDoors = ({
     const handlePointerLeave = () => {
         if (isOpen || isAnimating || isMobile) return;
         setIsHovered(false);
-        document.body.style.cursor = "url('/cursors/cursor-default.png'), auto";
+        document.body.style.cursor = "auto";
 
         // Close doors back
         gsap.to(leftDoorRef.current.rotation, {
@@ -523,7 +522,7 @@ const EntranceDoors = ({
     const handleWindowEnter = (e) => {
         e.stopPropagation();
         setIsWindowHovered(true);
-        document.body.style.cursor = "url('/cursors/cursor-pointer.png'), pointer";
+        document.body.style.cursor = "pointer";
 
         if (windowAvatarRef.current) {
             gsap.to(windowAvatarRef.current.position, {
@@ -544,7 +543,7 @@ const EntranceDoors = ({
     const handleWindowLeave = (e) => {
         e.stopPropagation();
         setIsWindowHovered(false);
-        document.body.style.cursor = "url('/cursors/cursor-default.png'), auto";
+        document.body.style.cursor = "auto";
 
         if (windowAvatarRef.current) {
             gsap.to(windowAvatarRef.current.position, {
@@ -851,8 +850,8 @@ const EntranceDoors = ({
                 <mesh
                     position={[0.38, 0.1, 0.01]}
                     onClick={handleDuckClick}
-                    onPointerEnter={() => { document.body.style.cursor = "url('/cursors/cursor-pointer.png'), pointer"; }}
-                    onPointerLeave={() => { document.body.style.cursor = "url('/cursors/cursor-default.png'), auto"; }}
+                    onPointerEnter={() => { document.body.style.cursor = "pointer"; }}
+                    onPointerLeave={() => { document.body.style.cursor = "auto"; }}
                 >
                     <planeGeometry args={[0.6, 0.6]} />
                     <meshBasicMaterial color="#e0e0e0" transparent opacity={0} />
@@ -899,8 +898,8 @@ const EntranceDoors = ({
                     ref={bugRef}
                     position={[2.5, floorY + 2.8, 0.16]}
                     onClick={handleBugClick}
-                    onPointerEnter={() => { document.body.style.cursor = "url('/cursors/cursor-pointer.png'), pointer"; }}
-                    onPointerLeave={() => { document.body.style.cursor = "url('/cursors/cursor-default.png'), auto"; }}
+                    onPointerEnter={() => { document.body.style.cursor = "pointer"; }}
+                    onPointerLeave={() => { document.body.style.cursor = "auto"; }}
                 >
                     <planeGeometry args={[0.4, 0.4]} />
                     <meshBasicMaterial color="#e0e0e0"

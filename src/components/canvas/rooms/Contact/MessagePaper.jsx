@@ -255,7 +255,7 @@ const MessagePaper = ({ position = [0, 0.05, 2], onSend }) => {
             if (result.success) {
                 setSubmitStatus('success');
                 onSend?.({ message, email, subject });
-                console.log('✅ Message sent successfully!');
+                // console.log('✅ Message sent successfully!');
 
                 // Clear form after success
                 setMessage('');
@@ -265,7 +265,7 @@ const MessagePaper = ({ position = [0, 0.05, 2], onSend }) => {
                 throw new Error(result.message || 'Failed to send');
             }
         } catch (error) {
-            console.error('❌ Send failed:', error);
+            // console.error('❌ Send failed:', error);
             setSubmitStatus('error');
         } finally {
             setIsSubmitting(false);

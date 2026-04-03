@@ -1,14 +1,15 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useTexture, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import '../../shaders/RevealMaterial';
+import { isTouchDevice } from '../../../../utils/deviceDetect';
 
 // Reusable Vector3 to avoid allocations in useFrame
 const _tempScale = new THREE.Vector3();
 
-const SocialBarrel = ({ position, rotation = [0, 0, 0], texturePath, label, onClick, scale = [2.12, 2.3] }) => {
+const SocialBarrel = ({ position, rotation = [0, 0, 0], texturePath, label, onClick, scale = [2.12, 2.3], paintOnBeforeCompile, paintUniforms }) => {
     const meshRef = useRef();
     const materialRef = useRef();
     const paintedRef = useRef();
@@ -19,8 +20,10 @@ const SocialBarrel = ({ position, rotation = [0, 0, 0], texturePath, label, onCl
     // Ideally textures are preloaded or consistent.
     const texture = useTexture(texturePath);
     // Determine the painted texture path from the base texture path
-    const paintedTexturePath = texturePath.replace('.png', '_painted.png').replace('.webp', '_painted.webp');
+    const isTouch = isTouchDevice();
+    const paintedTexturePath = isTouch ? texturePath : texturePath.replace('.png', '_painted.png').replace('.webp', '_painted.webp');
     const texturePainted = useTexture(paintedTexturePath);
+    const textRef = useRef();
 
     const [hovered, setHovered] = useState(false);
 
@@ -43,10 +46,24 @@ const SocialBarrel = ({ position, rotation = [0, 0, 0], texturePath, label, onCl
             const targetScale = hovered ? 1.1 : 1;
             // Apply base scale * hover factor
             meshRef.current.scale.lerp(_tempScale.set(targetScale, targetScale, 1), 0.1);
+
+            // Paint Transition for Text
+            if (paintUniforms && textRef.current) {
+                const localPos = meshRef.current.position;
+                const revealDir = new THREE.Vector3(1.0, 0.0, -0.1).normalize();
+                
+                const pStartDist = -5.0;
+                const pEndDist = 55.0;
+                const pTargetDist = THREE.MathUtils.lerp(pStartDist, pEndDist, paintUniforms.uPaintProgress.value);
+                const pDistFromPlane = pTargetDist - localPos.dot(revealDir);
+                
+                textRef.current.fillOpacity = THREE.MathUtils.clamp(pDistFromPlane, 0, 1);
+            }
         }
     });
 
     const handlePointerOver = () => {
+        if (isTouch) return;
         document.body.style.cursor = 'pointer';
         setHovered(true);
 
@@ -64,6 +81,7 @@ const SocialBarrel = ({ position, rotation = [0, 0, 0], texturePath, label, onCl
     };
 
     const handlePointerOut = () => {
+        if (isTouch) return;
         document.body.style.cursor = 'auto';
         setHovered(false);
 
@@ -101,6 +119,8 @@ const SocialBarrel = ({ position, rotation = [0, 0, 0], texturePath, label, onCl
                     transparent={true}
                     alphaTest={0.5}
                     side={THREE.DoubleSide}
+                    onBeforeCompile={paintOnBeforeCompile}
+                    needsUpdate={!!paintOnBeforeCompile}
                 />
             </mesh>
 
@@ -113,16 +133,20 @@ const SocialBarrel = ({ position, rotation = [0, 0, 0], texturePath, label, onCl
                     transparent={true}
                     alphaTest={0.1}
                     uProgress={0.0}
+                    paintUniforms={paintUniforms}
+                    paintConfig={{dirX: 1.0, dirY: 0.0, dirZ: -0.1, startDist: -5.0, endDist: 55.0, noiseAxes: 'yz'}}
                 />
             </mesh>
 
             {label && (
                 <Text
+                    ref={textRef}
                     position={[0, scale[1] * 0.26, 0.05]} // Adjust Y position to hit the wooden board on top of the barrel
                     rotation={[0, 0, 0.03]} // Slight tilt to match a drawn wooden board
                     fontSize={scale[0] * 0.14}
                     font="/fonts/CabinSketch-Bold.ttf"
                     color="#111111"
+                    fillOpacity={paintUniforms ? 0 : 1}
                     anchorX="center"
                     anchorY="middle"
                 >

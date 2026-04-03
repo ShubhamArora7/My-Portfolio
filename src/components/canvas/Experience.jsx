@@ -56,7 +56,7 @@ const Experience = ({ isLoaded, onSceneReady, performanceTier }) => {
     // Handle door enter from inside corridor
     const handleDoorEnter = useCallback((doorId) => {
         enterRoom(doorId);
-        console.log('Entering:', doorId);
+        // console.log('Entering:', doorId);
     }, [enterRoom]);
 
     // Optimization: Low tier has simpler lighting
@@ -68,7 +68,7 @@ const Experience = ({ isLoaded, onSceneReady, performanceTier }) => {
             {/* RoomWarmup mounts all 4 rooms 500 units below, compiles shaders via gl.compile(), 
                 then self-destructs and signals onSceneReady. This ensures both corridor segments
                 AND room shaders are pre-compiled before the user starts interacting. */}
-            <RoomWarmup onWarmupComplete={onSceneReady} />
+            <RoomWarmup onWarmupComplete={onSceneReady} isLowTier={isLowTier} />
 
             {/* === GLOBAL LIGHTING === */}
             {/* <ambientLight intensity={isLowTier ? 2.5 : 2.2} /> */}

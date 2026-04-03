@@ -18,7 +18,7 @@ import ContactRoom from '../rooms/Contact/ContactRoom';
  * Positioned 500 units below the scene so nothing is visible.
  * Audio components won't be audible at this distance.
  */
-const RoomWarmup = ({ onWarmupComplete }) => {
+const RoomWarmup = ({ onWarmupComplete, isLowTier }) => {
     const [isDone, setIsDone] = useState(false);
     const frameCount = useRef(0);
     const completeFired = useRef(false);
@@ -32,19 +32,27 @@ const RoomWarmup = ({ onWarmupComplete }) => {
 
         frameCount.current++;
 
-        // Reduced from 8 to 3 frames - enough for rooms to mount their first meshes
-        if (frameCount.current >= 3) {
+        // For low tier, we skip warmup, but still wait 1 frame for entrance to mount
+        const targetFrames = isLowTier ? 1 : 3;
+
+        if (frameCount.current >= targetFrames) {
             completeFired.current = true;
 
             const finishWarmup = () => {
                 const warmupDuration = ((performance.now() - warmupStart.current) / 1000).toFixed(2);
-                console.info(`🔥 GPU/Shader Warmup Complete: ${warmupDuration}s`);
+                // console.info(`🔥 GPU/Shader Warmup Complete: ${warmupDuration}s ${isLowTier ? '(Bypassed for LOW tier)' : ''}`);
                 
                 requestAnimationFrame(() => {
                     setIsDone(true);
                     onWarmupComplete?.();
                 });
             };
+
+            // On low tier, bypass intense gl.compileAsync to save memory and avoid Context Lost
+            if (isLowTier) {
+                finishWarmup();
+                return;
+            }
 
             // Force compile all shaders in the scene (including warm-up rooms)
             // Use 2026 compileAsync to avoid blocking the main thread!
@@ -64,6 +72,9 @@ const RoomWarmup = ({ onWarmupComplete }) => {
     });
 
     if (isDone) return null;
+
+    // Do not mount rooms at all on low end devices to prevent WebGL Context Lost
+    if (isLowTier) return null;
 
     // Dummy handlers to prevent errors (rooms expect these props)
     const noop = () => {};

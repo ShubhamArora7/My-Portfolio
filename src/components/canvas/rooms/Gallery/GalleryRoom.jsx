@@ -1,4 +1,4 @@
-import { useRef, useState, useMemo, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { useRef, useState, useMemo, useEffect, forwardRef, useImperativeHandle, memo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Text, useTexture, Float, PositionalAudio } from '@react-three/drei';
 import * as THREE from 'three';
@@ -11,6 +11,7 @@ import { useAchievements } from '../../../../context/AchievementsContext';
 import PaperMaterial from './PaperMaterial';
 import GalleryClouds from './GalleryClouds';
 import { useAudio } from '../../../../context/AudioManager';
+import { usePaintMaterial } from './usePaintMaterial';
 
 // Reusable Vector3 to avoid allocations in useFrame
 const _tempScale = new THREE.Vector3();
@@ -110,8 +111,45 @@ const GalleryRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
         }
     }, [isExiting, isTeleporting, hidePopup]);
 
+    // Setup Paint Transition
+    const { onBeforeCompile, animatePaint, resetPaint, uniformsData, updateRoomOrigin } = usePaintMaterial();
+    
+    // Track transition state to disable interactions
+    const [isTransitioning, setIsTransitioning] = useState(false);
+    
+    // Track if user teleported into this room 
+    const wasTeleportedRef = useRef(false);
+    useEffect(() => {
+        if (isTeleporting) wasTeleportedRef.current = true;
+    }, [isTeleporting]);
+
+    useEffect(() => {
+        // When the room officially shows up (doors open and user flies in)
+        if (showRoom && !isWarmup) {
+            if (wasTeleportedRef.current || isTeleporting) {
+                // Skip the painting transition entirely if teleporting via map
+                uniformsData.uPaintProgress.value = 1.0;
+                setIsTransitioning(false);
+            } else {
+                setIsTransitioning(true);
+                // resetPaint() in case we re-enter
+                resetPaint();
+                // Start the paint animation with a slight delay so it happens *during* fly-in
+                animatePaint(0.2, 2.5);
+                
+                // Re-enable interactions once painting finishes
+                setTimeout(() => {
+                    setIsTransitioning(false);
+                }, 2700); // 0.2 + 2.5
+            }
+        } else {
+            // Immediately reveal for warmup or hide if not showing
+            uniformsData.uPaintProgress.value = 1.0;
+        }
+    }, [showRoom, isWarmup, isTeleporting]);
+
     const handleCardClick = async (clickedIndex) => {
-        if (globalIsAnimating) return;
+        if (globalIsAnimating || isTransitioning) return;
 
         // Unlock inspect achievement
         unlockAchievement('gallery_inspect');
@@ -142,6 +180,10 @@ const GalleryRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
     const FRAMES_TO_WAIT = 5;
 
     useFrame(() => {
+        // Update room origin each frame so the paint shader knows where.
+        // This is cheap (one getWorldPosition) and critical for far chunks.
+        updateRoomOrigin(groupRef);
+
         if (hasSignaledReady.current) return;
         frameCount.current++;
         if (frameCount.current >= FRAMES_TO_WAIT) {
@@ -161,37 +203,44 @@ const GalleryRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
     const RAILING_HEIGHT = 1.25; // Legacy ratio 20/(7 segments * 2.287)
 
     // --- TEXTURES AND RESPONSIVENESS ---
-    const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+    // User requested: painted on desktop, regular on touch/phones (even if laptop has touch screen)
+    // We use matchMedia('(hover: hover)') to detect devices with a cursor/hover capability
+    const [canHover, setCanHover] = useState(() => typeof window !== 'undefined' ? window.matchMedia('(hover: hover)').matches : true);
 
     useEffect(() => {
-        const handleResize = () => setIsMobile(window.innerWidth < 768);
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
+        const mq = window.matchMedia('(hover: hover)');
+        const handleHoverChange = (e) => setCanHover(e.matches);
+        mq.addEventListener('change', handleHoverChange);
+        return () => mq.removeEventListener('change', handleHoverChange);
     }, []);
 
     // Load all project front textures in a flat array
     const textureUrls = UNIQUE_PROJECTS.map(p => p.front);
     const projectTextures = useTexture(textureUrls);
 
-    // Load painted textures only on desktop, fallback to front if mobile
-    const paintedUrls = UNIQUE_PROJECTS.map(p => (!isMobile && p.painted) ? p.painted : p.front);
+    // Load painted textures only on desktop, fallback to front if mobile/touch
+    const paintedUrls = UNIQUE_PROJECTS.map(p => (canHover && p.painted) ? p.painted : p.front);
     const paintedTextures = useTexture(paintedUrls);
 
     // Load the universal back texture and the button texture conditionally
-    const backTextureRaw = useTexture(isMobile ? '/textures/gallery/tylkartki.webp' : '/textures/gallery/tylkartki_painted.webp');
-    const overlayTextureRaw = useTexture(isMobile ? '/textures/gallery/przyciskdotylukartki.webp' : '/textures/gallery/przyciskdotylukartki_painted.webp');
+    const backTextureRaw = useTexture(canHover ? '/textures/gallery/tylkartki_painted.webp' : '/textures/gallery/tylkartki.webp');
+    const overlayTextureRaw = useTexture(canHover ? '/textures/gallery/przyciskdotylukartki_painted.webp' : '/textures/gallery/przyciskdotylukartki.webp');
 
     // Preload tech stack logos to prevent stuttering on first flip
-    const allLogos = [
-        '/textures/gallery/csslogo.webp',
-        '/textures/gallery/elementorlogo.webp',
-        '/textures/gallery/firebaselogo.webp',
-        '/textures/gallery/htmllogo.webp',
-        '/textures/gallery/jslogo.webp',
-        '/textures/gallery/netlifylogo.webp',
-        '/textures/gallery/phplogo.webp',
-        '/textures/gallery/wordpresslogo.webp'
-    ];
+    // We use the same conditional logic: painted on desktop, regular on touch
+    const allLogos = useMemo(() => {
+        const names = [
+            'csslogo', 'elementorlogo', 'firebaselogo', 'htmllogo',
+            'jslogo', 'netlifylogo', 'phplogo', 'reactlogo',
+            'tailwindlogo', 'wordpresslogo'
+        ];
+        return names.map(name => {
+            if (!canHover) return `/textures/gallery/${name}.webp`;
+            if (name === 'csslogo') return `/textures/gallery/css3logo_painted.webp`;
+            return `/textures/gallery/${name}_painted.webp`;
+        });
+    }, [canHover]);
+    
     useTexture(allLogos);
 
     // Construct the full list of projects (repeated) with textures attached
@@ -219,13 +268,22 @@ const GalleryRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
                 overlayTextureRaw.colorSpace = THREE.SRGBColorSpace;
             }
 
+            // Map tech stack logos to the correct version (painted or regular)
+            const techStack = projectData.techStack.map(path => {
+                if (!canHover) return path; // Keep regular
+                const name = path.split('/').pop().replace('.webp', '');
+                if (name === 'csslogo') return '/textures/gallery/css3logo_painted.webp';
+                return `/textures/gallery/${name}_painted.webp`;
+            });
+
             return {
                 ...projectData,
                 index: i,
                 frontTexture: frontTex,
-                paintedTexture: (paintedTex !== frontTex && !isMobile) ? paintedTex : null,
+                paintedTexture: (paintedTex !== frontTex && canHover) ? paintedTex : null,
                 backTexture: backTextureRaw,
-                buttonTexture: overlayTextureRaw
+                buttonTexture: overlayTextureRaw,
+                techStack: techStack
             };
         });
     }, [projectTextures, backTextureRaw, overlayTextureRaw]);
@@ -266,20 +324,20 @@ const GalleryRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
             type: "wheel,touch,pointer",
             wheelSpeed: -1,
             onWheel: (e) => {
-                if (!showRoom || selectedCard !== null || globalIsAnimating) return;
+                if (!showRoom || selectedCard !== null || globalIsAnimating || isTransitioning) return;
                 const orig = e.event;
                 orig.preventDefault();
                 targetScroll.current += orig.deltaY * 0.005;
             },
             onPress: (e) => {
-                if (!showRoom || selectedCard !== null || globalIsAnimating) return;
+                if (!showRoom || selectedCard !== null || globalIsAnimating || isTransitioning) return;
                 const orig = e.event;
                 if (orig.touches && orig.touches.length === 1) {
                     lastTouchX.current = orig.touches[0].clientX;
                 }
             },
             onDrag: (e) => {
-                if (!showRoom || selectedCard !== null || globalIsAnimating) return;
+                if (!showRoom || selectedCard !== null || globalIsAnimating || isTransitioning) return;
                 const orig = e.event;
                 if (orig.touches && orig.touches.length === 1) {
                     const deltaX = lastTouchX.current - orig.touches[0].clientX;
@@ -324,26 +382,36 @@ const GalleryRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
             color: '#e0e0e0',
             side: THREE.DoubleSide
         });
+        floorMat.onBeforeCompile = onBeforeCompile;
+        floorMat.transparent = true;
+        floorMat.needsUpdate = true;
+        
+        const ropeMat = new THREE.MeshBasicMaterial({ color: '#666666' });
+        ropeMat.onBeforeCompile = onBeforeCompile;
+        ropeMat.transparent = true;
+        ropeMat.needsUpdate = true;
+
+        const thresholdMat = new THREE.MeshBasicMaterial({
+            color: '#e0e0e0',
+            map: (() => {
+                const t = new THREE.TextureLoader().load('/textures/corridor/texturadoprogow.webp');
+                t.colorSpace = THREE.SRGBColorSpace;
+                t.wrapS = t.wrapT = THREE.RepeatWrapping;
+                t.repeat.set(15 / 2.524, 1);
+                return t;
+            })(),
+            side: THREE.DoubleSide
+        });
+        thresholdMat.onBeforeCompile = onBeforeCompile;
+        thresholdMat.transparent = true;
+        thresholdMat.needsUpdate = true;
+
         return {
             floor: floorMat,
-            rope: new THREE.MeshBasicMaterial({ color: '#666666' }),
-            threshold: new THREE.MeshBasicMaterial({
-                color: '#e0e0e0',
-                map: (() => {
-                    // Use existing baseboard texture logic if available, or load new
-                    // Since we don't have it loaded here, let's load it or borrow it
-                    // Better to load it cleanly here
-                    const t = new THREE.TextureLoader().load('/textures/corridor/texturadoprogow.webp');
-                    t.colorSpace = THREE.SRGBColorSpace;
-                    t.wrapS = t.wrapT = THREE.RepeatWrapping;
-                    t.repeat.set(15 / 2.524, 1); // 15 width / ~2.5 unit per tile
-                    return t;
-                })(),
-
-                side: THREE.DoubleSide
-            })
+            rope: ropeMat,
+            threshold: thresholdMat
         };
-    }, [floorTexture]);
+    }, [floorTexture, onBeforeCompile]);
 
     const curve = useMemo(() => {
         return new THREE.CatmullRomCurve3([
@@ -371,16 +439,18 @@ const GalleryRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
 
     return (
         <group ref={groupRef}>
-            <PositionalAudio
-                ref={audioRef}
-                url="/sounds/szummiasta.mp3"
-                distanceModel="exponential"
-                refDistance={AUDIO_SETTINGS.distance}
-                rolloffFactor={AUDIO_SETTINGS.rolloff}
-                loop
-                autoplay
-                volume={effectiveVolume}
-            />
+            {!isWarmup && (
+                <PositionalAudio
+                    ref={audioRef}
+                    url="/sounds/szummiasta.mp3"
+                    distanceModel="exponential"
+                    refDistance={AUDIO_SETTINGS.distance}
+                    rolloffFactor={AUDIO_SETTINGS.rolloff}
+                    loop
+                    autoplay
+                    volume={effectiveVolume}
+                />
+            )}
             <group position={[0, -0.7, -2]}>
                 {/* Floor */}
                 <mesh
@@ -401,7 +471,7 @@ const GalleryRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
                             itemSize={3}
                         />
                     </bufferGeometry>
-                    <lineBasicMaterial color="#999999" />
+                    <lineBasicMaterial color="#999999" onBeforeCompile={onBeforeCompile} transparent={true} needsUpdate={true} />
                 </line>
 
                 {/* Railing */}
@@ -412,6 +482,8 @@ const GalleryRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
                         transparent={true}
                         side={THREE.DoubleSide}
                         alphaTest={0.1}
+                        onBeforeCompile={onBeforeCompile}
+                        customProgramCacheKey={() => 'railing-paint'}
                     />
                 </mesh>
 
@@ -443,7 +515,10 @@ const GalleryRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
                             isSelected={selectedCard === i}
                             scrollToIndex={scrollToIndex}
                             onClick={handleCardClick}
-                            isMobile={isMobile}
+                            isMobile={!canHover} // Use hover capability for mobile behavior logic
+                            isTransitioning={isTransitioning} // Pass down to lock out individual pointer events just in case
+                            paintProgress={uniformsData.uPaintProgress}
+                            roomOrigin={uniformsData.uRoomOrigin}
                         />
                     ))}
                 </group>
@@ -457,6 +532,7 @@ const GalleryRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
                         transparent={true}
                         alphaTest={0.1}
                         side={THREE.DoubleSide}
+                        onBeforeCompile={onBeforeCompile}
                     />
                 </mesh>
                 {/* Houses - left side (mirrored) */}
@@ -467,6 +543,7 @@ const GalleryRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
                         transparent={true}
                         alphaTest={0.1}
                         side={THREE.DoubleSide}
+                        onBeforeCompile={onBeforeCompile}
                     />
                 </mesh>
                 {/* Houses - right side (mirrored) - CROPPED */}
@@ -485,6 +562,7 @@ const GalleryRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
                         transparent={true}
                         alphaTest={0.1}
                         side={THREE.DoubleSide}
+                        onBeforeCompile={onBeforeCompile}
                     />
                 </mesh>
                 {/* City skyline - left (mirrored) */}
@@ -495,6 +573,7 @@ const GalleryRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
                         transparent={true}
                         alphaTest={0.1}
                         side={THREE.DoubleSide}
+                        onBeforeCompile={onBeforeCompile}
                     />
                 </mesh>
                 {/* City skyline - right (mirrored) */}
@@ -505,6 +584,7 @@ const GalleryRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
                         transparent={true}
                         alphaTest={0.1}
                         side={THREE.DoubleSide}
+                        onBeforeCompile={onBeforeCompile}
                     />
                 </mesh>
 
@@ -517,7 +597,7 @@ const GalleryRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
                 {/* Skybox/Environment */}
                 <mesh position={[0, 5, -20]}>
                     <sphereGeometry args={[40, 32, 32]} />
-                    <meshBasicMaterial color="#f0f0f0" side={THREE.BackSide} transparent opacity={0.5} />
+                    <meshBasicMaterial color="#f0f0f0" side={THREE.BackSide} transparent opacity={0.5} onBeforeCompile={onBeforeCompile} />
                 </mesh>
             </group>
         </group>
@@ -602,7 +682,7 @@ const FlyingBird = ({ texture }) => {
 };
 
 // Sub-component for individual project cards
-const ProjectCard = forwardRef(({ index, project, clothespinTexture, currentScroll, materials, curve, isSelected, scrollToIndex, onClick, isMobile }, ref) => {
+const ProjectCard = memo(forwardRef(({ index, project, clothespinTexture, currentScroll, materials, curve, isSelected, scrollToIndex, onClick, isMobile, isTransitioning, paintProgress, roomOrigin }, ref) => {
     const cardRef = useRef();
     const paperRef = useRef(); // Ref for the moving part (Paper)
     const materialRef = useRef();
@@ -610,6 +690,10 @@ const ProjectCard = forwardRef(({ index, project, clothespinTexture, currentScro
     const buttonGroupRef = useRef(); // Ref for the interactive back button
     const detailsGroupRef = useRef(); // Ref for the project details on the back
     const techStackGroupRef = useRef(); // Ref for the tech stack section on the back
+    const detailsTextRef1 = useRef();
+    const detailsTextRef2 = useRef();
+    const techTextRef = useRef();
+    const openTextRef = useRef();
     const [hovered, setHovered] = useState(false);
     const [btnHovered, setBtnHovered] = useState(false);
     const [isAnimating, setIsAnimating] = useState(false);  // True ONLY during flip animation
@@ -856,6 +940,31 @@ const ProjectCard = forwardRef(({ index, project, clothespinTexture, currentScro
     useFrame((state) => {
         if (!cardRef.current) return;
 
+        // Custom GSAP Paint logic for texts
+        // We delay the text reveal slightly so the card paints first (p > 0.4)
+        if (textRef.current && paintProgress) {
+            const p = paintProgress.value;
+            // Instantly reveal if we teleported
+            const expectedOpacity = p >= 1.0 ? 1.0 : THREE.MathUtils.clamp((p - 0.3) * 2.0, 0.0, 1.0);
+            
+            if (textRef.current.fillOpacity !== expectedOpacity) {
+                const applyOpacity = (ref) => {
+                    if (ref.current) {
+                        ref.current.fillOpacity = expectedOpacity;
+                        if (ref.current.material) {
+                            ref.current.material.opacity = expectedOpacity;
+                            ref.current.material.transparent = true;
+                        }
+                    }
+                };
+                applyOpacity(textRef);
+                applyOpacity(detailsTextRef1);
+                applyOpacity(detailsTextRef2);
+                applyOpacity(techTextRef);
+                applyOpacity(openTextRef);
+            }
+        }
+
         // --- Zrównaj pozycję tekstu Z z animacją zaginania i falowania kartki (PRZÓD) ---
         if (textRef.current && materialRef.current) {
             const y = textRef.current.position.y;
@@ -967,7 +1076,7 @@ const ProjectCard = forwardRef(({ index, project, clothespinTexture, currentScro
             ref={cardRef}
             onClick={handleClick}
             onPointerEnter={(e) => {
-                if (isMobile) return;
+                if (isMobile || isTransitioning) return;
                 e.stopPropagation();
                 setHovered(true);
 
@@ -982,7 +1091,7 @@ const ProjectCard = forwardRef(({ index, project, clothespinTexture, currentScro
                 }
             }}
             onPointerLeave={(e) => {
-                if (isMobile) return;
+                if (isMobile || isTransitioning) return;
                 e.stopPropagation();
                 setHovered(false);
 
@@ -1000,7 +1109,7 @@ const ProjectCard = forwardRef(({ index, project, clothespinTexture, currentScro
             {/* Clothespin (Top Center) - Does NOT move with paperRef */}
             <mesh position={[0, -0.08, 0.15]} rotation={[0, 0, Math.PI]}>
                 <planeGeometry args={[0.3, 0.2]} />
-                <meshBasicMaterial color="#e0e0e0"
+                <meshBasicMaterial color="#ffffff"
                     map={clothespinTexture}
                     transparent={true}
                     alphaTest={0.1}
@@ -1023,6 +1132,8 @@ const ProjectCard = forwardRef(({ index, project, clothespinTexture, currentScro
                         mapPainted={project.paintedTexture}
                         side={THREE.DoubleSide}
                         roughness={0.6}
+                        paintProgress={paintProgress}
+                        roomOrigin={roomOrigin}
                     />
                 </mesh>
 
@@ -1035,7 +1146,7 @@ const ProjectCard = forwardRef(({ index, project, clothespinTexture, currentScro
                     {/* Warstwa 1: Wizualna ramka przycisku (bez eventów) */}
                     <mesh>
                         <planeGeometry args={[1.2, 1.2 / 3.613]} />
-                        <meshBasicMaterial color="#e0e0e0"
+                        <meshBasicMaterial color="#ffffff"
                             map={project.buttonTexture}
                             transparent={true}
                             alphaTest={0.05}
@@ -1044,12 +1155,14 @@ const ProjectCard = forwardRef(({ index, project, clothespinTexture, currentScro
 
                     {/* Warstwa 2: Napis OPEN PROJECT (bez eventów) */}
                     <Text
+                        ref={openTextRef}
                         position={[0, 0, 0.01]}
                         fontSize={0.11}
                         color={btnHovered ? "#333333" : "#1c1c1c"}
                         font="/fonts/CabinSketch-Bold.ttf"
                         anchorX="center"
                         anchorY="middle"
+                        fillOpacity={0} // Start hidden
                     >
                         OPEN PROJECT
                     </Text>
@@ -1058,19 +1171,19 @@ const ProjectCard = forwardRef(({ index, project, clothespinTexture, currentScro
                     <mesh
                         position={[0, 0, 0.02]}
                         onClick={(e) => {
-                            if (isSelected) {
+                            if (isSelected && !isTransitioning) {
                                 e.stopPropagation();
                                 window.open(project.url, '_blank');
                             }
                         }}
                         onPointerEnter={(e) => {
-                            if (isSelected) {
+                            if (isSelected && !isTransitioning) {
                                 e.stopPropagation();
                                 setBtnHovered(true);
                             }
                         }}
                         onPointerLeave={(e) => {
-                            if (isSelected) {
+                            if (isSelected && !isTransitioning) {
                                 e.stopPropagation();
                             }
                             setBtnHovered(false);
@@ -1088,17 +1201,20 @@ const ProjectCard = forwardRef(({ index, project, clothespinTexture, currentScro
                     rotation={[Math.PI, 0, 0]}
                 >
                     <Text
+                        ref={detailsTextRef1}
                         position={[0, 0.28, 0.01]} // Względem środka detailsGroupRef, wyżej
                         fontSize={0.10}
                         color="#1c1c1c"
                         font="/fonts/CabinSketch-Bold.ttf"
                         anchorX="center"
                         anchorY="middle"
+                        fillOpacity={0} // Start hidden
                     >
                         PROJECT DETAILS:
                     </Text>
 
                     <Text
+                        ref={detailsTextRef2}
                         position={[0, 0.2, 0.01]} // Poniżej nagłówka
                         fontSize={0.06}
                         color="#333333"
@@ -1108,6 +1224,7 @@ const ProjectCard = forwardRef(({ index, project, clothespinTexture, currentScro
                         maxWidth={1.1} // Maksymalna szerokość zanim zacznie łamać linie
                         lineHeight={1.4}
                         textAlign="center"
+                        fillOpacity={0} // Start hidden
                     >
                         {project.description || "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco."}
                     </Text>
@@ -1120,12 +1237,14 @@ const ProjectCard = forwardRef(({ index, project, clothespinTexture, currentScro
                     rotation={[Math.PI, 0, 0]}
                 >
                     <Text
+                        ref={techTextRef}
                         position={[0, 0.15, 0.01]}
                         fontSize={0.08}
                         color="#1c1c1c"
                         font="/fonts/CabinSketch-Bold.ttf"
                         anchorX="center"
                         anchorY="middle"
+                        fillOpacity={0} // Start hidden
                     >
                         TECH STACK
                     </Text>
@@ -1166,6 +1285,7 @@ const ProjectCard = forwardRef(({ index, project, clothespinTexture, currentScro
                     font="/fonts/CabinSketch-Bold.ttf"
                     anchorX="center"
                     anchorY="middle"
+                    fillOpacity={0} // Start hidden
                 >
                     {project.title}
                 </Text>
@@ -1181,7 +1301,7 @@ const ProjectCard = forwardRef(({ index, project, clothespinTexture, currentScro
             </group>
         </group>
     );
-});
+}));
 
 
 // Component to handle the cropped right-side houses
@@ -1230,7 +1350,7 @@ const TechStackLogo = ({ path, position }) => {
     return (
         <mesh position={position}>
             <planeGeometry args={[0.17, 0.17]} />
-            <meshBasicMaterial color="#e0e0e0"
+            <meshBasicMaterial color="#ffffff"
                 map={texture}
                 transparent={true}
             />

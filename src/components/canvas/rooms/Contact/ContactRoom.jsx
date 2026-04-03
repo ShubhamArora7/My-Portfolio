@@ -16,6 +16,7 @@ import { useAudio } from '../../../../context/AudioManager';
 // Immersive experience: write message, roll into bottle, throw
 // ============================================
 import { useTexture } from '@react-three/drei';
+import { usePaintMaterial } from '../Gallery/usePaintMaterial';
 
 const WAVE_LAYERS = 4;
 
@@ -148,6 +149,43 @@ const ContactRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
         };
     }, [camera]);
 
+    // ===== PAINT TRANSITION =====
+    // Contact is on the RIGHT side of the corridor, so reveal goes from right (+X) into the room
+    const groupRef = useRef();
+    const { onBeforeCompile, animatePaint, resetPaint, uniformsData, updateRoomOrigin } = usePaintMaterial({
+        dirX: 1.0,    // Opposite to Gallery (right side door)
+        dirY: 0.0,
+        dirZ: -0.1,   // Slight angle matching mirrored direction
+        startDist: -5.0,
+        endDist: 55.0,
+        noiseAxes: 'yz'
+    });
+
+    const [isTransitioning, setIsTransitioning] = useState(false);
+
+    const wasTeleportedRef = useRef(false);
+    useEffect(() => {
+        if (isTeleporting) wasTeleportedRef.current = true;
+    }, [isTeleporting]);
+
+    useEffect(() => {
+        if (showRoom && !isWarmup) {
+            if (wasTeleportedRef.current || isTeleporting) {
+                uniformsData.uPaintProgress.value = 1.0;
+                setIsTransitioning(false);
+            } else {
+                setIsTransitioning(true);
+                resetPaint();
+                animatePaint(0.2, 2.5);
+                setTimeout(() => {
+                    setIsTransitioning(false);
+                }, 2700);
+            }
+        } else {
+            uniformsData.uPaintProgress.value = 1.0;
+        }
+    }, [showRoom, isWarmup, isTeleporting]);
+
     // Track if we've signaled ready
     const hasSignaledReady = useRef(false);
     const frameCount = useRef(0);
@@ -245,6 +283,9 @@ const ContactRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
 
     // Frame Loop
     useFrame((state, delta) => {
+        // Update room origin for paint shader
+        updateRoomOrigin(groupRef);
+
         if (!hasSignaledReady.current) {
             frameCount.current++;
             if (frameCount.current >= FRAMES_TO_WAIT) {
@@ -311,17 +352,19 @@ const ContactRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
     }, []);
 
     return (
-        <group position={[0, -0.7, -5]}>
-            <PositionalAudio
-                ref={audioRef}
-                url="/sounds/szummorza.mp3"
-                distanceModel="exponential"
-                refDistance={AUDIO_SETTINGS.distance}
-                rolloffFactor={AUDIO_SETTINGS.rolloff}
-                loop
-                autoplay
-                volume={effectiveVolume}
-            />
+        <group ref={groupRef} position={[0, -0.7, -5]}>
+            {!isWarmup && (
+                <PositionalAudio
+                    ref={audioRef}
+                    url="/sounds/szummorza.mp3"
+                    distanceModel="exponential"
+                    refDistance={AUDIO_SETTINGS.distance}
+                    rolloffFactor={AUDIO_SETTINGS.rolloff}
+                    loop
+                    autoplay
+                    volume={effectiveVolume}
+                />
+            )}
 
             {/* ☁️ CLOUDS */}
             <GalleryClouds count={45} seed={88} rotationOffset={[0, 1, 0]} />
@@ -343,6 +386,7 @@ const ContactRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
                             opacity={1 - i * 0.1}
                             side={THREE.DoubleSide}
                             toneMapped={false}
+                            onBeforeCompile={onBeforeCompile}
                         />
                     </mesh>
                 ))}
@@ -356,6 +400,8 @@ const ContactRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
                 texturePath="/textures/contact/beczka.webp"
                 label="LINKEDIN"
                 onClick={() => window.open('https://www.linkedin.com/in/tomasz-szmajda-259337305/', '_blank')}
+                paintOnBeforeCompile={onBeforeCompile}
+                paintUniforms={uniformsData}
             />
             {/* GITHUB */}
             <SocialBarrel
@@ -364,6 +410,8 @@ const ContactRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
                 texturePath="/textures/contact/beczka.webp"
                 label="GITHUB"
                 onClick={() => window.open('https://github.com/ITomPoland', '_blank')}
+                paintOnBeforeCompile={onBeforeCompile}
+                paintUniforms={uniformsData}
             />
             {/* FACEBOOK */}
             <SocialBarrel
@@ -372,6 +420,8 @@ const ContactRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
                 texturePath="/textures/contact/beczka.webp"
                 label="FACEBOOK"
                 onClick={() => window.open('https://www.facebook.com/tomasz.szmajda.58/', '_blank')}
+                paintOnBeforeCompile={onBeforeCompile}
+                paintUniforms={uniformsData}
             />
             {/* INSTAGRAM */}
             <SocialBarrel
@@ -380,6 +430,8 @@ const ContactRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
                 texturePath="/textures/contact/beczka.webp"
                 label="INSTAGRAM"
                 onClick={() => window.open('https://www.instagram.com/itom.dev/', '_blank')}
+                paintOnBeforeCompile={onBeforeCompile}
+                paintUniforms={uniformsData}
             />
             {/* MAIL (Triggers animation) */}
             <SocialBarrel
@@ -388,6 +440,8 @@ const ContactRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
                 texturePath="/textures/contact/beczka.webp"
                 label="MESSAGE"
                 onClick={handleMailSelect}
+                paintOnBeforeCompile={onBeforeCompile}
+                paintUniforms={uniformsData}
             />
 
 
@@ -403,6 +457,7 @@ const ContactRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
                     roughness={0.8}
                     side={THREE.DoubleSide}
                     transparent
+                    onBeforeCompile={onBeforeCompile}
                 />
             </mesh>
 
@@ -417,6 +472,7 @@ const ContactRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
                     transparent
                     alphaTest={0.5}
                     side={THREE.DoubleSide}
+                    onBeforeCompile={onBeforeCompile}
                 />
             </mesh>
 
@@ -432,6 +488,7 @@ const ContactRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
                     transparent
                     alphaTest={0.5}
                     side={THREE.DoubleSide}
+                    onBeforeCompile={onBeforeCompile}
                 />
             </mesh>
 
@@ -443,7 +500,7 @@ const ContactRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
                 <MessagePaper
                     position={[0, 0.07, 2]}
                     onSend={(data) => {
-                        console.log('📬 Contact form submitted:', data);
+                        // console.log('📬 Contact form submitted:', data);
                         unlockAchievement('contact_submit');
                     }}
                 />

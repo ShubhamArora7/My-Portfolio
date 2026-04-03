@@ -115,12 +115,10 @@ export const AudioProvider = ({ children }) => {
             playPromise.catch(error => {
                 if (error.name === 'NotAllowedError') {
                     // console.warn('[Audio] Auto-play blocked. Waiting for interaction.');
-                    // Common in browsers before user interacts. Silent fail is preferred to spam.
                 } else if (error.name === 'NotSupportedError' || error.message.includes('404')) {
-                    console.warn(`[Audio] File not found or not supported: ${path}. (This is expected if files are missing)`);
+                    // Silently fail if file is missing for SOTD clean console
                 } else {
-                    // Other errors (e.g. 404 often comes as a network error event on the element, not the promise)
-                    console.warn('[Audio] Play error:', error);
+                    // console.warn('[Audio] Play error:', error);
                 }
             });
         }
@@ -128,15 +126,11 @@ export const AudioProvider = ({ children }) => {
         // Return a handle to stop it
         return {
             stop: () => {
-                // console.log(`[Audio] Stopping ${soundName}`);
                 audio.pause();
                 audio.currentTime = 0;
                 delete activeSounds.current[soundName];
             },
             fade: (duration = 1000) => {
-                // Simple fade out simulation
-                console.log(`[Audio] Fading out ${soundName}`);
-                // Logic to decrement volume would go here activeSounds.current[soundName]...
                 // For now just stop
                 audio.pause();
                 delete activeSounds.current[soundName];

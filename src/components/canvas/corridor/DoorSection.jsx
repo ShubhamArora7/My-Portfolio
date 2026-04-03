@@ -149,7 +149,7 @@ const DoorSection = ({
         // FIX: Added (currentRoom === doorId) check to ensure we only reset the OLD room
         // FIX: Added (teleportPhase === 'teleporting') to wait for curtain to close
         if (isTeleporting && teleportPhase === 'teleporting' && isInsideRoom && currentRoom === doorId) {
-            console.log(`[DoorSection ${label}] Silent Reset triggered by teleport (Old Room)`);
+            // console.log(`[DoorSection ${label}] Silent Reset triggered by teleport (Old Room)`);
 
             // 1. Reset Internal State immediately
             setIsOpen(false);
@@ -395,7 +395,7 @@ const DoorSection = ({
         }
 
         // Reset cursor on transition
-        document.body.style.cursor = "url('/cursors/cursor-default.png'), auto";
+        document.body.style.cursor = "auto";
 
         setIsAnimating(true);
 
@@ -588,8 +588,9 @@ const DoorSection = ({
                         setIsAnimating(false);
                         setIsInsideRoom(true);
 
-                        // Defer context update to next frame to prevent stutter
-                        requestAnimationFrame(() => {
+                        // Defer context update exactly 250ms to strictly avoid any
+                        // stutter during the very last frames of the GSAP animation loop.
+                        setTimeout(() => {
                             enterRoom(doorId); // Use ID ('gallery') not label ('THE GALLERY')
                             onEnter?.();
 
@@ -597,7 +598,7 @@ const DoorSection = ({
                             if (fastMode) {
                                 signalRoomReady();
                             }
-                        });
+                        }, 250);
                     }
                 });
             }
@@ -744,10 +745,14 @@ const DoorSection = ({
     // Listen for exit request from UI back button
     useEffect(() => {
         if (exitRequested && isInsideRoom && !isAnimating) {
-            clearExitRequest(); // Clear the request immediately
+            // Note: We deliberately do NOT call clearExitRequest() here.
+            // Calling it triggers an immediate global React Context update exactly
+            // when we want to start a 60 FPS GSAP animation. 
+            // setExitRequested(false) will be handled safely at the end of the 
+            // animation by contextExitRoom().
             exitRoom(); // Trigger the exit animation
         }
-    }, [exitRequested, isInsideRoom, isAnimating, clearExitRequest, exitRoom]);
+    }, [exitRequested, isInsideRoom, isAnimating, exitRoom]);
 
     const closeDoor = useCallback((onDoorClosed) => {
         if (!doorRef.current || !isOpen) return;
@@ -817,13 +822,18 @@ const DoorSection = ({
     const handlePointerEnter = () => {
         if (isOpen || isAnimating) return;
         setIsHovered(true);
-        document.body.style.cursor = "url('/cursors/cursor-pointer.webp'), pointer";
+        document.body.style.cursor = "pointer";
 
         if (hoverAudioRef.current && !isHovered) {
             const vol = isMuted ? 0 : DOOR_AUDIO_SETTINGS.hoverVolume * globalVolume;
             hoverAudioRef.current.setVolume(vol);
+            
+            // Only play if AudioContext is already running to avoid console warnings
+            // Browsers block audio until a user click, and hover is not always enough.
             if (hoverAudioRef.current.isPlaying) hoverAudioRef.current.stop();
-            hoverAudioRef.current.play();
+            if (hoverAudioRef.current.context.state === 'running') {
+                hoverAudioRef.current.play();
+            }
         }
 
         // Slightly open door on hover
@@ -870,7 +880,7 @@ const DoorSection = ({
     const handlePointerLeave = () => {
         if (isOpen || isAnimating) return;
         setIsHovered(false);
-        document.body.style.cursor = "url('/cursors/cursor-default.png'), auto";
+        document.body.style.cursor = "auto";
 
         if (hoverAudioRef.current && hoverAudioRef.current.isPlaying) {
             hoverAudioRef.current.stop();

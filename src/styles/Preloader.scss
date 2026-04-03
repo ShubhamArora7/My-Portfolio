@@ -10,7 +10,7 @@
     z-index: $z-preloader;
     // No background on container itself, the halves handle it
     pointer-events: auto;
-    cursor: url('/cursors/cursor-default.webp'), auto;
+    cursor: auto;
 
     &__half {
         position: absolute;
