@@ -235,15 +235,13 @@ const MessagePaper = ({ position = [0, 0.05, 2], onSend }) => {
         setErrors({});
 
         try {
-            const response = await fetch('https://api.web3forms.com/submit', {
+            const response = await fetch('/api/send-email', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 },
                 body: JSON.stringify({
-                    access_key: WEB3FORMS_KEY,
-                    from_name: 'Portfolio Contact',
                     email: email,
                     subject: subject,
                     message: message

@@ -140,8 +140,8 @@ const AwardButton = ({ onClick, texture, paintedTexture, width, height, position
 };
 
 // Story milestones configuration
-// Each milestone appears once per "story cycle" (4 chunks = 160 units)
-const STORY_CYCLE_LENGTH = 160;
+// Total distance for one cycle of the story (Intro -> Journey -> Skills)
+const STORY_CYCLE_LENGTH = 120;
 
 // === TWARDA LINIA ZANIKANIA DLA MILESTONES (WORLD SPACE) ===
 // Pokój About jest na Z = -25, więc -25 to drzwi pokoju
@@ -228,22 +228,15 @@ const InfiniteSkyManager = ({ scrollProgressRef }) => {
                         scrollProgressRef={scrollProgressRef}
                     />
 
-                    {/* === AWARDS MILESTONE === */}
-                    <AwardsMilestone
+                    {/* === JOURNEY MILESTONE === */}
+                    <JourneyMilestone
                         z={-(cycleIndex * STORY_CYCLE_LENGTH + 55)}
                         scrollProgressRef={scrollProgressRef}
                     />
 
-                    {/* === JOURNEY MILESTONE === */}
-                    <JourneyMilestone
-                        z={-(cycleIndex * STORY_CYCLE_LENGTH + 95)}
-                        scrollProgressRef={scrollProgressRef}
-                    />
-
                     {/* === SKILLS MILESTONE === */}
-
                     <SkillsMilestone
-                        z={-(cycleIndex * STORY_CYCLE_LENGTH + 135)}
+                        z={-(cycleIndex * STORY_CYCLE_LENGTH + 95)}
                         scrollProgressRef={scrollProgressRef}
                     />
                 </group>
@@ -351,7 +344,7 @@ const IntroMilestone = ({ z, scrollProgressRef }) => {
                 anchorY="middle"
                 font="/fonts/RubikScribble-Regular.ttf"
             >
-                TOMASZ SZMAJDA
+                SHUBHAM ARORA
             </Text>
 
             {/* Subtitle - Brand (spreads right) */}
@@ -364,7 +357,7 @@ const IntroMilestone = ({ z, scrollProgressRef }) => {
                 anchorY="middle"
                 font="/fonts/CabinSketch-Regular.ttf"
             >
-                (ITOM)
+                (DEV)
             </Text>
 
             {/* Avatar on cloud - floating + spreads up-left */}
@@ -864,18 +857,7 @@ const JourneyMilestone = ({ z, scrollProgressRef }) => {
         }
 
         // Floating animation (bobbing)
-        // UO Island (Left)
-        if (uoRef.current) {
-            // === EDYTUJ POZYCJE TUTAJ (UO) ===
-            const startY = -2;
-            const endY = 1.5;
-
-            const currentBaseY = startY + revealFactor * (endY - startY);
-            uoRef.current.position.y = currentBaseY + Math.sin(time * 0.5) * 0.2;
-            uoRef.current.rotation.z = Math.sin(time * 0.3) * 0.05;
-        }
-
-        // Freelance Island (Right)
+        // Freelance Island (Centered)
         if (freelanceRef.current) {
             // === EDYTUJ POZYCJE TUTAJ (Freelance) ===
             const startY = -1;
@@ -913,31 +895,8 @@ const JourneyMilestone = ({ z, scrollProgressRef }) => {
                 My path so far...
             </Text>
 
-            {/* === UO ISLAND (Left) === */}
-            <group ref={uoRef} position={[-3.5, -1, 0]}>
-                <mesh>
-                    <planeGeometry args={[islandHeight * uoAspect, islandHeight]} />
-                    <meshBasicMaterial color="#e0e0e0"
-                        map={uoTexture}
-                        transparent
-                        side={THREE.DoubleSide}
-                    />
-                </mesh>
-                {/* NAPIS NA WYSPIE (UO) - EDYTUJ TUTAJ */}
-                <Text
-                    position={[0.1, -0.85, 0.1]} // POZYCJA (X, Y, Z)
-                    fontSize={0.4}           // WIELKOŚĆ
-                    color="#1a1a1a"
-                    anchorX="center"
-                    anchorY="middle"
-                    font="/fonts/CabinSketch-Bold.ttf"
-                >
-                    2025-NOW
-                </Text>
-            </group>
-
-            {/* === FREELANCE ISLAND (Right) === */}
-            <group ref={freelanceRef} position={[3.5, -2, 0.5]}>
+            {/* === FREELANCE ISLAND (Centered) === */}
+            <group ref={freelanceRef} position={[0, -2, 0.5]}>
                 <mesh>
                     <planeGeometry args={[islandHeight * freelanceAspect, islandHeight]} />
                     <meshBasicMaterial color="#e0e0e0"
@@ -955,7 +914,7 @@ const JourneyMilestone = ({ z, scrollProgressRef }) => {
                     anchorY="middle"
                     font="/fonts/CabinSketch-Bold.ttf"
                 >
-                    2023-NOW
+                    2025-NOW
                 </Text>
             </group>
         </group>
@@ -972,8 +931,9 @@ const JourneyMilestone = ({ z, scrollProgressRef }) => {
 const BALLOON_CONFIG = [
     // Large balloons (main skills) - front and center
     { texture: '/textures/about/reactduzybalon.webp', paintedTexture: '/textures/about/reactduzybalon_painted.webp', label: 'React', size: 'large', x: -2.5, y: 2, z: 0.3, phase: 0 },
-    { texture: '/textures/about/threejsduzybalon.webp', paintedTexture: '/textures/about/threejsduzybalon_painted.webp', label: 'Three.js', size: 'large', x: 2.5, y: 2.5, z: 0.2, phase: 1.5 },
-    { texture: '/textures/about/GSAPduzybalon.webp', paintedTexture: '/textures/about/GSAPduzybalon_painted.webp', label: 'GSAP', size: 'large', x: 0, y: 3, z: 0.5, phase: 3 },
+    { texture: '/textures/about/djangoduzybalon.webp', paintedTexture: '/textures/about/djangoduzybalon_painted.webp', label: 'Django', size: 'large', x: 2.5, y: 2.5, z: 0.2, phase: 1.5 },
+    { texture: '/textures/about/awsduzybalon.webp', paintedTexture: '/textures/about/awsduzybalon_painted.webp', label: 'AWS', size: 'large', x: 0, y: 3, z: 0.5, phase: 3 },
+    { texture: '/textures/about/pythonduzybalon.webp', paintedTexture: '/textures/about/pythonduzybalon_painted.webp', label: 'Python', size: 'large', x: -1.2, y: 4.0, z: 0.4, phase: 4.5 },
 
     // Medium balloons - scattered around
     { texture: '/textures/about/JSSREDNIBALON.webp', paintedTexture: '/textures/about/JSSREDNIBALON_painted.webp', label: 'JavaScript', size: 'medium', x: -4, y: 1, z: -0.3, phase: 0.8 },
@@ -1033,8 +993,9 @@ const SkillBalloon = ({ config, revealFactorRef, spreadFactorRef, timeRef }) => 
     // LEGACY FIX: Use original aspect ratios from BALLOON_CONFIG or hardcoded for categories
     const legacyAspects = {
         'reactduzybalon.webp': 736 / 1447,
-        'threejsduzybalon.webp': 1141 / 1964,
-        'GSAPduzybalon.webp': 1.0, // GSAP balloon is square
+        'djangoduzybalon.webp': 1141 / 1964,
+        'awsduzybalon.webp': 1.0, // AWS balloon is square
+        'pythonduzybalon.webp': 1141 / 1964,
         'default_small_medium': 631 / 1482 // Common ratio for others
     };
     

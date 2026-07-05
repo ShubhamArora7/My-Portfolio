@@ -1,5 +1,5 @@
 {
-  "name": "portfolio-itom",
+  "name": "portfolio-shubham",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -17,6 +17,7 @@
     "@types/three": "^0.182.0",
     "gsap": "^3.14.2",
     "jimp": "^1.6.0",
+    "nodemailer": "^9.0.3",
     "posthog-js": "^1.360.0",
     "r3f-perf": "^7.2.3",
     "react": "^19.2.0",

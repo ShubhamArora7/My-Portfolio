@@ -208,11 +208,16 @@ const ContentCard = ({ content, isOpen, onClose, isMobile }) => {
     const transitionContent = 'all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1)';
 
     // --- KONFIGURACJA STYLU KARTKI (POZYCJA) ---
-    // Używamy % lub vw/vh dla fluid-responsywności.
+    const isResume = content.title === 'MY RESUME';
+    const isIntern = content.title.startsWith('Full Stack Web Developer Intern');
+    const isCertifications = content.title === 'My Certifications';
+    const isCppIntern = content.title.startsWith('Software Developer Intern');
+    const showTitle = isResume || content.title === 'Best Intern Award 2026 - PaulTech Pvt. Ltd' || isIntern || isCertifications || isCppIntern;
+
     const cardStyle = isMobile ? {
         // MOBILE: Karta na dole
-        width: '90%',
-        maxHeight: '60vh',
+        width: content.layout === 'certificate_grid' ? '95%' : (showTitle ? '90%' : '80%'),
+        maxHeight: content.layout === 'certificate_grid' ? '60vh' : ((isIntern || isCppIntern) ? '38vh' : (showTitle ? '32vh' : '25vh')),
         bottom: '10rem', // <--- FLUID: WPROWADZONE PRZEZ UZYTKOWNIKA
         left: '50%',
         transform: isOpen ? 'translate(-50%, 0) rotate(-1deg)' : 'translate(-50%, 120%) rotate(10deg)',
@@ -220,7 +225,7 @@ const ContentCard = ({ content, isOpen, onClose, isMobile }) => {
         color: '#1a1a1a',
     } : {
         // DESKTOP: Karta po prawej
-        width: 'clamp(280px, 30vw, 450px)', // <--- FLUID
+        width: content.layout === 'certificate_grid' ? 'clamp(300px, 90vw, 1200px)' : ((isIntern || isCppIntern) ? 'clamp(300px, 28vw, 460px)' : (showTitle ? 'clamp(280px, 26vw, 420px)' : 'clamp(220px, 20vw, 320px)')), // <--- FLUID
         right: 'clamp(2rem, 12vw, 20rem)', // <--- FLUID: scales with viewport
         top: '50%',
         transform: isOpen ? 'translateY(-50%) rotate(1deg)' : 'translate(150%, -50%) rotate(15deg)',
@@ -366,39 +371,32 @@ const ContentCard = ({ content, isOpen, onClose, isMobile }) => {
                         display: isMobile ? 'block' : 'none'
                     }} />
 
-                    {/* Header */}
                     <div style={{
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'flex-start',
-                        marginBottom: '1rem',
+                        marginBottom: (content.layout === 'certificate_grid' || content.title === 'MY RESUME' || content.title === 'Best Intern Award 2026 - PaulTech Pvt. Ltd' || content.title.startsWith('Full Stack Web Developer Intern') || content.title === 'My Certifications' || content.title.startsWith('Software Developer Intern')) ? '1rem' : '0',
                         ...getStaggerStyle(100)
                     }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                            <span style={{
-                                textTransform: 'uppercase',
-                                fontSize: '0.7rem',
-                                fontWeight: 700,
-                                letterSpacing: '1px',
-                                color: '#666'
-                            }}>
-                                {label}
-                            </span>
-                            <h2 style={{
-                                fontSize: '1.8rem',
-                                margin: 0,
-                                lineHeight: 1.1,
-                                fontWeight: 800,
-                                fontFamily: "'Rubik Scribble', cursive", // Clean, bold
-                            }}>
-                                {content.title}
-                            </h2>
-                        </div>
+                        {(content.layout === 'certificate_grid' || content.title === 'MY RESUME' || content.title === 'Best Intern Award 2026 - PaulTech Pvt. Ltd' || content.title.startsWith('Full Stack Web Developer Intern') || content.title === 'My Certifications' || content.title.startsWith('Software Developer Intern')) && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                                <h2 style={{
+                                    fontSize: (content.title.startsWith('Full Stack Web Developer Intern') || content.title.startsWith('Software Developer Intern')) ? '1.4rem' : '1.8rem',
+                                    margin: 0,
+                                    lineHeight: (content.title.startsWith('Full Stack Web Developer Intern') || content.title.startsWith('Software Developer Intern')) ? 1.2 : 1.1,
+                                    fontWeight: 800,
+                                    fontFamily: "'Rubik Scribble', cursive", // Clean, bold
+                                }}>
+                                    {content.title}
+                                </h2>
+                            </div>
+                        )}
 
                         <button
                             onClick={onClose}
                             className="studio-close-btn"
                             aria-label="Close"
+                            style={{ marginLeft: 'auto' }}
                         >
                             <svg viewBox="0 0 24 24">
                                 <path d="M18 6L6 18M6 6l12 12" />
@@ -497,50 +495,35 @@ const ContentCard = ({ content, isOpen, onClose, isMobile }) => {
                     ) : (
                         /* === LAYOUT: DEFAULT (The Studio Style) === */
                         <>
-                            {/* Meta Info */}
-                            <div style={{
-                                display: 'flex',
-                                flexWrap: 'wrap',
-                                gap: '1rem',
-                                fontSize: '0.8rem',
-                                color: '#666',
-                                borderBottom: '1px dashed #ccc',
-                                paddingBottom: '1rem',
-                                ...getStaggerStyle(200)
-                            }}>
-                                <strong>{content.date}</strong>
-                                {content.views && <span>{content.views} views</span>}
-                            </div>
-
-                            {/* Description */}
-                            <p 
-                                ref={descriptionRef}
-                                style={{
-                                lineHeight: 1.6,
-                                color: '#333',
-                                fontSize: '0.95rem',
-                                margin: 0,
-                                minHeight: '80px', // Prevent layout jump while typing
-                                ...getStaggerStyle(300)
-                            }}>
-                                {content.description}
-                            </p>
-
-                            {/* Action Button */}
-                            <div style={{
-                                marginTop: 'auto',
-                                paddingTop: '1rem',
-                                ...getStaggerStyle(400)
-                            }}>
-                                <a
-                                    href={content.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="studio-action-button"
-                                >
-                                    Open Link ↗
-                                </a>
-                            </div>
+                            {content.url && (
+                                <div style={{
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    width: '100%',
+                                    marginTop: '1rem',
+                                    ...getStaggerStyle(400)
+                                }}>
+                                    <a
+                                        href={content.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="studio-action-button"
+                                        style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            padding: '1rem 2.2rem',
+                                            fontSize: '1.3rem',
+                                            fontWeight: 800,
+                                            cursor: 'pointer',
+                                            fontFamily: "'Cabin Sketch', cursive"
+                                        }}
+                                    >
+                                        Open Link ↗
+                                    </a>
+                                </div>
+                            )}
                         </>
                     )}
                 </div>

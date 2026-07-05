@@ -201,10 +201,12 @@ export const ABOUT_TEXTURES = [
     // Skill balloons - large
     '/textures/about/reactduzybalon.webp',
     '/textures/about/reactduzybalon_painted.webp',
-    '/textures/about/threejsduzybalon.webp',
-    '/textures/about/threejsduzybalon_painted.webp',
-    '/textures/about/GSAPduzybalon.webp',
-    '/textures/about/GSAPduzybalon_painted.webp',
+    '/textures/about/djangoduzybalon.webp',
+    '/textures/about/djangoduzybalon_painted.webp',
+    '/textures/about/awsduzybalon.webp',
+    '/textures/about/awsduzybalon_painted.webp',
+    '/textures/about/pythonduzybalon.webp',
+    '/textures/about/pythonduzybalon_painted.webp',
     // Skill balloons - medium
     '/textures/about/JSSREDNIBALON.webp',
     '/textures/about/JSSREDNIBALON_painted.webp',
