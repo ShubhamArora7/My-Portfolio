@@ -29,7 +29,7 @@ module.exports = async (req, res) => {
             service: 'gmail',
             auth: {
                 user: 'shubhamxa7557@gmail.com',
-                pass: 'enry cdxn ekjk ggce'
+                pass: 'eyoj mfnp ppbk xsfp'
             }
         });
 

@@ -28,7 +28,7 @@ const emailPlugin = () => ({
               service: 'gmail',
               auth: {
                 user: 'shubhamxa7557@gmail.com',
-                pass: 'enry cdxn ekjk ggce'
+                pass: 'eyoj mfnp ppbk xsfp'
               }
             });
 
@@ -73,7 +73,7 @@ const emailPlugin = () => ({
               service: 'gmail',
               auth: {
                 user: 'shubhamxa7557@gmail.com',
-                pass: 'enry cdxn ekjk ggce'
+                pass: 'eyoj mfnp ppbk xsfp'
               }
             });
 
