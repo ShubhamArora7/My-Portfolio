@@ -63,7 +63,7 @@ const UNIQUE_PROJECTS = [
         front: '/textures/gallery/youngmultiprzod.webp',
         painted: '/textures/gallery/youngmultiprzod_painted.webp',
         url: '#',
-        description: 'developed with a group as an Software Development Intern at CPP Secrets',
+        description: 'A tax management and taxpayer communication portal. Developed in a group as a web developer intern at CPP secrets',
         techStack: [
             '/textures/gallery/react_taxpayers.webp',
             '/textures/gallery/nodejs_taxpayers.webp',
