@@ -98,6 +98,16 @@ const ContactRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
     const { globalVolume, isMuted } = useAudio();
     const effectiveVolume = isMuted ? 0 : AUDIO_SETTINGS.volume * globalVolume;
 
+    const safeOpenLink = useCallback((url) => {
+        const a = document.createElement('a');
+        a.href = url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }, []);
+
     const audioRef = useRef();
     useEffect(() => {
         if (audioRef.current && audioRef.current.setVolume) {
@@ -399,7 +409,7 @@ const ContactRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
                 rotation={[0, 0.2, 0]}
                 texturePath="/textures/contact/beczka.webp"
                 label="LINKEDIN"
-                onClick={() => window.open('https://www.linkedin.com/in/shubham-arora-3096b6384', '_blank')}
+                onClick={() => safeOpenLink('https://www.linkedin.com/in/shubham-arora-3096b6384')}
                 paintOnBeforeCompile={onBeforeCompile}
                 paintUniforms={uniformsData}
             />
@@ -409,7 +419,7 @@ const ContactRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
                 rotation={[0, 0.3, 0]}
                 texturePath="/textures/contact/beczka.webp"
                 label="GITHUB"
-                onClick={() => window.open('https://github.com/ShubhamArora7', '_blank')}
+                onClick={() => safeOpenLink('https://github.com/ShubhamArora7')}
                 paintOnBeforeCompile={onBeforeCompile}
                 paintUniforms={uniformsData}
             />
@@ -419,7 +429,7 @@ const ContactRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
                 rotation={[0, -0.2, 0]}
                 texturePath="/textures/contact/beczka.webp"
                 label="FACEBOOK"
-                onClick={() => window.open('https://www.facebook.com/Shubham.Arora7557/', '_blank')}
+                onClick={() => safeOpenLink('https://www.facebook.com/Shubham.Arora7557/')}
                 paintOnBeforeCompile={onBeforeCompile}
                 paintUniforms={uniformsData}
             />
@@ -429,7 +439,7 @@ const ContactRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
                 rotation={[0, -0.3, 0]}
                 texturePath="/textures/contact/beczka.webp"
                 label="INSTAGRAM"
-                onClick={() => window.open('https://www.instagram.com/shubhamxa_?igsh=MTRrenVhbmozbmM0Yg%3D%3D&utm_source=qr', '_blank')}
+                onClick={() => safeOpenLink('https://www.instagram.com/shubhamxa_?igsh=MTRrenVhbmozbmM0Yg%3D%3D&utm_source=qr')}
                 paintOnBeforeCompile={onBeforeCompile}
                 paintUniforms={uniformsData}
             />

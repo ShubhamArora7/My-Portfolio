@@ -99,15 +99,34 @@ const SocialBarrel = ({ position, rotation = [0, 0, 0], texturePath, label, onCl
         });
     };
 
+    const pointerDownPos = useRef({ x: 0, y: 0 });
+    const pointerDownTime = useRef(0);
+
+    const handlePointerDown = (e) => {
+        pointerDownPos.current = { x: e.pointer.x, y: e.pointer.y };
+        pointerDownTime.current = Date.now();
+    };
+
+    const handlePointerUp = (e) => {
+        const elapsed = Date.now() - pointerDownTime.current;
+        const dx = e.pointer.x - pointerDownPos.current.x;
+        const dy = e.pointer.y - pointerDownPos.current.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        // Click detection: tap must be < 350ms and distance moved < 0.05 units in NDC space
+        if (elapsed < 350 && dist < 0.05) {
+            e.stopPropagation();
+            onClick && onClick();
+        }
+    };
+
     return (
         <group
             ref={meshRef}
             position={position}
             rotation={rotation}
-            onClick={(e) => {
-                e.stopPropagation();
-                onClick && onClick();
-            }}
+            onPointerDown={handlePointerDown}
+            onPointerUp={handlePointerUp}
             onPointerOver={handlePointerOver}
             onPointerOut={handlePointerOut}
         >
