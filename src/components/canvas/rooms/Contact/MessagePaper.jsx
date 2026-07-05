@@ -235,26 +235,17 @@ const MessagePaper = ({ position = [0, 0.05, 2], onSend }) => {
         setErrors({});
 
         try {
-            // Use local mock API on localhost, Web3Forms in production
-            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-            const fetchUrl = isLocalhost ? '/api/send-email' : 'https://api.web3forms.com/submit';
-            const fetchBody = isLocalhost 
-                ? JSON.stringify({ email, subject, message })
-                : JSON.stringify({
-                    access_key: '0665f454-b446-4eed-ae97-77f04266cf59',
-                    name: 'Portfolio Contact Form',
-                    email: email,
-                    subject: `[Portfolio Contact] ${subject || 'New Message'}`,
-                    message: message
-                });
-
-            const response = await fetch(fetchUrl, {
+            const response = await fetch('/api/send-email', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 },
-                body: fetchBody
+                body: JSON.stringify({
+                    email: email,
+                    subject: subject,
+                    message: message
+                })
             });
 
             const result = await response.json();
