@@ -323,14 +323,11 @@ const GalleryRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
         gsap.to(targetScroll, {
             current: finalTarget,
             duration: 0.5,
-            ease: 'power2.inOut'
-        });
-
-        gsap.to(currentScroll, {
-            current: finalTarget,
-            duration: 0.5,
             ease: 'power2.inOut',
-            onComplete: onComplete
+            onComplete: () => {
+                currentScroll.current = finalTarget;
+                onComplete?.();
+            }
         });
     };
 
