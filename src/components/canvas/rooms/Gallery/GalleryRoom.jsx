@@ -35,44 +35,59 @@ export const GALLERY_INTERACTION_AUDIO_SETTINGS = {
 // Define the unique projects and their textures
 const UNIQUE_PROJECTS = [
     {
-        id: 'monetune',
-        title: 'MONETUNE',
+        id: 'chatrio',
+        title: 'CHATRIO',
         front: '/textures/gallery/monetuneprzod.webp',
         painted: '/textures/gallery/monetuneprzod_painted.webp',
-        url: 'https://monetune.pl',
-        description: 'MoneTune is a step-by-step blueprint that teaches beginners how to generate passive income using AI-created music. Without any musical skills, you will learn how to easily produce professional tracks, publish them on platforms like Spotify, and monetize your digital assets.',
-        techStack: ['/textures/gallery/wordpresslogo.webp', '/textures/gallery/elementorlogo.webp', '/textures/gallery/phplogo.webp', '/textures/gallery/csslogo.webp']
+        url: '#',
+        description: 'Full-stack social networking platform with topic-based hubs for community discussions. \nTech used: Next.js, React.js, Node.js, Supabase.',
+        techStack: [
+            '/textures/gallery/react_crayon.webp',
+            '/textures/gallery/nextjs_crayon.webp',
+            '/textures/gallery/nodejs_crayon.webp',
+            '/textures/gallery/supabase_crayon.webp'
+        ]
     },
     {
-        id: 'timber',
-        title: 'TIMBERKITTY',
+        id: 'caresync',
+        title: 'CARESYNC',
         front: '/textures/gallery/timberkittyprzod.webp',
         painted: '/textures/gallery/timberkittyprzod_painted.webp',
-        url: 'https://timberkitty.netlify.app',
-        description: 'TimberKitty is an addictive, free-to-play browser arcade game built in pure JavaScript. Players control a lumberjack cat to chop wood, save birds, complete daily missions, and compete on global leaderboards.',
-        techStack: ['/textures/gallery/jslogo.webp', '/textures/gallery/htmllogo.webp', '/textures/gallery/csslogo.webp', '/textures/gallery/firebaselogo.webp']
+        url: 'https://caresync-ao73.onrender.com/',
+        description: 'A hospital Management portal.\nTech used: Django, Python, HTML, CSS, Javascript, Docker.',
+        techStack: ['/textures/gallery/djangologo.webp', '/textures/gallery/pythonlogo.webp', '/textures/gallery/js_newlogo.webp', '/textures/gallery/dockerlogo.webp']
     },
     {
-        id: 'young',
-        title: 'YOUNG MULTI',
+        id: 'unionoftaxpayers',
+        title: 'UNION OF TAXPAYERS',
         front: '/textures/gallery/youngmultiprzod.webp',
         painted: '/textures/gallery/youngmultiprzod_painted.webp',
-        url: 'https://young-multi-strona.netlify.app',
-        description: 'A sleek, modern concept website dedicated to the Polish rapper and creator Young Multi. It serves as a promotional landing page designed to highlight his personal brand, music, and online presence.',
-        techStack: ['/textures/gallery/reactlogo.webp', '/textures/gallery/tailwindlogo.webp', '/textures/gallery/htmllogo.webp', '/textures/gallery/netlifylogo.webp']
+        url: '#',
+        description: 'developed with a group as an Software Development Intern at CPP Secrets',
+        techStack: [
+            '/textures/gallery/react_taxpayers.webp',
+            '/textures/gallery/nodejs_taxpayers.webp',
+            '/textures/gallery/express_taxpayers.webp',
+            '/textures/gallery/prisma_taxpayers.webp'
+        ]
     },
     {
-        id: 'bio',
-        title: 'BIO',
+        id: 'awshosting',
+        title: 'AWS STATIC HOSTING',
         front: '/textures/gallery/bioprzod.webp',
         painted: '/textures/gallery/bioprzod_painted.webp',
-        url: 'https://tomkingbio.netlify.app',
-        description: 'A fast, modern personal bio page serving as a central hub for my digital footprint. It showcases my latest coding projects, web development services, YouTube videos, and recommended music artists.',
-        techStack: ['/textures/gallery/htmllogo.webp', '/textures/gallery/csslogo.webp', '/textures/gallery/jslogo.webp', '/textures/gallery/netlifylogo.webp']
+        url: 'http://52.63.41.4/',
+        description: 'Static Website Hosting project leveraging Amazon Web Services, demonstrating cloud fundamentals and deployment practices. \nTech used: S3, EC2, CloudWatch, VPC.',
+        techStack: [
+            '/textures/gallery/aws_s3.webp',
+            '/textures/gallery/aws_ec2.webp',
+            '/textures/gallery/aws_cloudwatch.webp',
+            '/textures/gallery/aws_vpc.webp'
+        ]
     },
 ];
 
-const PROJECT_COUNT = 10; // Keep the count for the infinite scroll feel
+const PROJECT_COUNT = 4; // Keep the count for the infinite scroll feel (set to 4 to avoid duplicates)
 const GAP = 2.5;
 
 // Zmień te wartości aby dopasować proporcje ptaka (legacy ratio 1.41)
@@ -232,7 +247,11 @@ const GalleryRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
         const names = [
             'csslogo', 'elementorlogo', 'firebaselogo', 'htmllogo',
             'jslogo', 'netlifylogo', 'phplogo', 'reactlogo',
-            'tailwindlogo', 'wordpresslogo'
+            'tailwindlogo', 'wordpresslogo', 'djangologo', 'pythonlogo',
+            'js_newlogo', 'react_newlogo', 'dockerlogo', 'nextjslogo',
+            'react_crayon', 'nextjs_crayon', 'nodejs_crayon', 'supabase_crayon',
+            'react_taxpayers', 'nodejs_taxpayers', 'express_taxpayers', 'prisma_taxpayers',
+            'aws_s3', 'aws_ec2', 'aws_cloudwatch', 'aws_vpc'
         ];
         return names.map(name => {
             if (!canHover) return `/textures/gallery/${name}.webp`;
@@ -1233,13 +1252,13 @@ const ProjectCard = memo(forwardRef(({ index, project, clothespinTexture, curren
                 {/* === SEKCJA TECH STACK NA PLECACH KARTKI === */}
                 <group
                     ref={techStackGroupRef}
-                    position={[0, 0.30, 0]} // Pomiędzy Project Details a przyciskiem Open Project
+                    position={[0, 0.294, 0.01]} // Centered on the 4 horizontal boxes (y = -0.294 global)
                     rotation={[Math.PI, 0, 0]}
                 >
                     <Text
                         ref={techTextRef}
-                        position={[0, 0.15, 0.01]}
-                        fontSize={0.08}
+                        position={[-0.04, 0.13, 0.01]} // Centered inside the header of the boxes frame
+                        fontSize={0.07}
                         color="#1c1c1c"
                         font="/fonts/CabinSketch-Bold.ttf"
                         anchorX="center"
@@ -1249,16 +1268,23 @@ const ProjectCard = memo(forwardRef(({ index, project, clothespinTexture, curren
                         TECH STACK
                     </Text>
 
-                    {/* Kontener na loga układane poziomo */}
-                    <group position={[0, -0.05, 0.01]}>
+                    {/* Kontener na loga układane w 4 pudełkach */}
+                    <group position={[0, 0, 0.01]}>
                         {project.techStack && project.techStack.map((logoPath, idx) => {
-                            // Rozstawienie kwadracików (4 sztuki wyśrodkowane)
-                            const spacing = 0.30;
-                            const startX = -((project.techStack.length - 1) * spacing) / 2;
-                            const xPos = startX + (idx * spacing);
+                            let xPos = 0;
+                            const len = project.techStack.length;
+                            if (len === 1) {
+                                xPos = -0.165; // Box 2
+                            } else if (len === 2) {
+                                xPos = idx === 0 ? -0.165 : 0.135; // Box 2 and 3
+                            } else if (len === 3) {
+                                xPos = idx === 0 ? -0.46 : idx === 1 ? -0.165 : 0.135; // Box 1, 2, and 3
+                            } else {
+                                xPos = idx === 0 ? -0.46 : idx === 1 ? -0.165 : idx === 2 ? 0.135 : 0.435; // Box 1, 2, 3, and 4
+                            }
 
                             return (
-                                <TechStackLogo key={idx} path={logoPath} position={[xPos, 0, 0]} />
+                                <TechStackLogo key={idx} path={logoPath} position={[xPos + 0.02, -0.06, 0]} />
                             );
                         })}
                     </group>
@@ -1280,11 +1306,13 @@ const ProjectCard = memo(forwardRef(({ index, project, clothespinTexture, curren
                 <Text
                     ref={textRef}
                     position={[0, 0.7, 0]} // Tylko dwa pierwsze parametry [X, Y] mają tutaj znaczenie
-                    fontSize={0.20}
+                    fontSize={0.16}
                     color="#1c1c1c"
                     font="/fonts/CabinSketch-Bold.ttf"
                     anchorX="center"
                     anchorY="middle"
+                    maxWidth={1.3}
+                    textAlign="center"
                     fillOpacity={0} // Start hidden
                 >
                     {project.title}
@@ -1349,7 +1377,7 @@ const TechStackLogo = ({ path, position }) => {
 
     return (
         <mesh position={position}>
-            <planeGeometry args={[0.17, 0.17]} />
+            <planeGeometry args={[0.16, 0.16]} />
             <meshBasicMaterial color="#ffffff"
                 map={texture}
                 transparent={true}
